@@ -1,0 +1,16 @@
+[package]
+name = "solarcalc"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+jiff = { version = "0.2.16", default-features = false }
+
+[dev-dependencies]
+expect-test = "1.5.1"
+jiff = { version = "0.2.16", default-features = true }
+
+[features]
+default = ["std"]
+std = ["jiff/std", "jiff/tz-system", "jiff/tzdb-bundle-platform"]
+cf-workers = ["jiff/js", "jiff/tzdb-bundle-always"]
