@@ -2,7 +2,7 @@
 resolver = "3"
 members = [
     "solarcalc",
-    "sunapi",
+    "sunapi", "sunapi-cf",
 ]
 
 [workspace.lints.rust]

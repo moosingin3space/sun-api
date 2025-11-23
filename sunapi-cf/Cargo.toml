@@ -1,0 +1,18 @@
+[package]
+name = "sunapi-cf"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+axum = { version = "0.8.7", default-features = false }
+jiff = { version = "0.2.16", default-features = false, features = ["js"] }
+sunapi = { version = "0.1.0", path = "../sunapi", default-features = false }
+tower-service = "0.3.3"
+worker = { version = "0.6.7", features = ["axum", "http"] }
+worker-macros = { version = "0.6.7", features = ["http"] }
+
+[lints]
+workspace = true

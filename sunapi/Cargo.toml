@@ -7,7 +7,7 @@ edition = "2024"
 name = "sunapi"
 
 [dependencies]
-axum = "0.8.7"
+axum = { version = "0.8.7", default-features = false, features = ["json", "query"] }
 http = "1.3.1"
 jiff = { version = "0.2.16", features = ["serde"] }
 serde = { version = "1.0.228", features = ["derive"] }
@@ -20,6 +20,7 @@ utoipa-swagger-ui = { version = "9.0.2", features = ["axum"] }
 workspace = true
 
 [dev-dependencies]
+axum = "0.8.7"
 const_format = { version = "0.2.35", features = ["rust_1_83"] }
 expect-test = "1.5.1"
 http-body-util = "0.1.3"
