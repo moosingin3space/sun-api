@@ -3,12 +3,16 @@ name = "sunapi"
 version = "0.1.0"
 edition = "2024"
 
+[[bin]]
+name = "sunapi"
+
 [dependencies]
 axum = "0.8.7"
 http = "1.3.1"
 jiff = { version = "0.2.16", features = ["serde"] }
 serde = { version = "1.0.228", features = ["derive"] }
 solarcalc = { version = "0.1.0", path = "../solarcalc" }
+tokio = { version = "1.48.0", features = ["net", "rt-multi-thread", "time"], optional = true }
 utoipa = { version = "5.4.0", features = ["axum_extras", "jiff_0_2"] }
 utoipa-swagger-ui = { version = "9.0.2", features = ["axum"] }
 
@@ -22,6 +26,9 @@ http-body-util = "0.1.3"
 hyper-util = { version = "0.1.18", features = ["client-legacy"] }
 serde_json = "1.0.145"
 testresult = "0.4.1"
-tokio = { version = "1.48.0", features = ["io-std", "net"] }
 tower = "0.5.2"
 turmoil = "0.7.0"
+
+[features]
+default = ["tokio"]
+tokio = ["dep:tokio"]
