@@ -21,14 +21,12 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Install Dagger
+      - name: Run lint
         uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
         with:
           version: "0.19.7"
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-
-      - name: Run lint
-        run: dagger call lint --source=.
+          call: lint --source=.
 
   test:
     name: Test
@@ -40,14 +38,12 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Install Dagger
+      - name: Run tests
         uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
         with:
           version: "0.19.7"
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-
-      - name: Run tests
-        run: dagger call test --source=.
+          call: test --source=.
 
   build-and-publish:
     name: Build and Publish Container
@@ -61,12 +57,6 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Install Dagger
-        uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
-        with:
-          version: "0.19.7"
-          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3
         with:
@@ -75,11 +65,18 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and publish container
-        run: |
-          IMAGE=ghcr.io/${{ github.repository }}/sunapi:${{ github.sha }}
-          IMAGE_LATEST=ghcr.io/${{ github.repository }}/sunapi:latest
-          dagger call publish --source=. --address=$IMAGE
-          dagger call publish --source=. --address=$IMAGE_LATEST
+        uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
+        with:
+          version: "0.19.7"
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+          call: publish --source=. --address=ghcr.io/${{ github.repository }}/sunapi:${{ github.sha }}
+
+      - name: Tag as latest
+        uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
+        with:
+          version: "0.19.7"
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+          call: publish --source=. --address=ghcr.io/${{ github.repository }}/sunapi:latest
 
   deploy-cf-worker:
     name: Deploy Cloudflare Worker
@@ -94,17 +91,11 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Install Dagger
+      - name: Deploy to Cloudflare
         uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
         with:
           version: "0.19.7"
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-
-      - name: Deploy to Cloudflare
-        run: |
-          dagger call deploy-cf-worker \
-            --source=. \
-            --cloudflare-api-token=env:CLOUDFLARE_API_TOKEN \
-            --cloudflare-account-id=${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          call: deploy-cf-worker --source=. --cloudflare-api-token=env:CLOUDFLARE_API_TOKEN --cloudflare-account-id=${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

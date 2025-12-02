@@ -21,14 +21,12 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Install Dagger
+      - name: Run lint
         uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
         with:
           version: "0.19.7"
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-
-      - name: Run lint
-        run: dagger call lint --source=.
+          call: lint --source=.
 
   test:
     name: Test
@@ -40,14 +38,12 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Install Dagger
+      - name: Run tests
         uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
         with:
           version: "0.19.7"
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-
-      - name: Run tests
-        run: dagger call test --source=.
+          call: test --source=.
 
   build:
     name: Build
@@ -59,17 +55,19 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Install Dagger
+      - name: Build sunapi binary
         uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
         with:
           version: "0.19.7"
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-
-      - name: Build sunapi binary
-        run: dagger call build --source=. export --path=./sunapi
+          call: build --source=. export --path=./sunapi
 
       - name: Build container
-        run: dagger call build-container --source=.
+        uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
+        with:
+          version: "0.19.7"
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+          call: build-container --source=.
 
   build-cf-worker:
     name: Build Cloudflare Worker
@@ -81,11 +79,9 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Install Dagger
+      - name: Build Cloudflare Worker
         uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
         with:
           version: "0.19.7"
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-
-      - name: Build Cloudflare Worker
-        run: dagger call cf-worker-build --source=.
+          call: cf-worker-build --source=.
