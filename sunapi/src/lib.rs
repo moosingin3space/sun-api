@@ -1,3 +1,5 @@
+#![doc = "../README.md"]
+
 use std::sync::Arc;
 
 use axum::{Extension, Json, Router, body::HttpBody, extract::Query, routing::get};

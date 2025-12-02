@@ -18,3 +18,5 @@ a given location.
 # Specific guidelines
 
 See @doc/*.md and @specs/**/*.md for more information.
+
+Individual crates have documentation at @**/README.md.

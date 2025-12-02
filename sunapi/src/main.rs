@@ -1,3 +1,5 @@
+//! SunAPI with Tokio: a standalone version of the SunAPI.
+
 use std::error::Error;
 
 use sunapi::Platform;

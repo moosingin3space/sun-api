@@ -2,8 +2,9 @@
 resolver = "3"
 members = [
     "solarcalc",
-    "sunapi", "sunapi-cf",
+    "sunapi",
+    "sunapi-cf",
 ]
 
 [workspace.lints.rust]
-missing_doc = "deny"
+missing_docs = "deny"

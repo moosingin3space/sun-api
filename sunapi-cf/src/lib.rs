@@ -1,3 +1,5 @@
+//! SunAPI in a Cloudflare Worker
+
 use sunapi::Platform;
 use tower_service::Service;
 use worker::*;
