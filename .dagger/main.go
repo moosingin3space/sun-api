@@ -1,0 +1,170 @@
+// Dagger module for sun-api CI/CD pipelines
+//
+// This module provides linting, building, and deployment functions for the
+// sun-api project using Wolfi-based containers for minimal, secure builds.
+package main
+
+import (
+	"context"
+	"dagger/sun-api/internal/dagger"
+)
+
+type SunApi struct{}
+
+// rustContainer returns a Wolfi container with Rust toolchain installed
+func (m *SunApi) rustContainer() *dagger.Container {
+	return dag.Wolfi().Container(dagger.WolfiContainerOpts{
+		Packages: []string{
+			"rustup",
+			"build-base",
+			"openssl-dev",
+			"pkgconf",
+			"curl",
+		},
+	}).
+		WithExec([]string{"rustup-init", "-y", "--default-toolchain", "stable"}).
+		WithEnvVariable("PATH", "/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin")
+}
+
+// Lint runs cargo fmt check, cargo check, and cargo clippy with warnings denied
+func (m *SunApi) Lint(ctx context.Context, source *dagger.Directory) (string, error) {
+	return m.rustContainer().
+		WithMountedDirectory("/src", source).
+		WithWorkdir("/src").
+		WithExec([]string{"rustup", "component", "add", "rustfmt", "clippy"}).
+		WithExec([]string{"cargo", "fmt", "--all", "--check"}).
+		WithExec([]string{"cargo", "check", "--all-targets", "--all-features"}).
+		WithExec([]string{"cargo", "clippy", "--all-targets", "--all-features", "--", "-D", "warnings"}).
+		Stdout(ctx)
+}
+
+// Fmt runs cargo fmt check
+func (m *SunApi) Fmt(ctx context.Context, source *dagger.Directory) (string, error) {
+	return m.rustContainer().
+		WithMountedDirectory("/src", source).
+		WithWorkdir("/src").
+		WithExec([]string{"rustup", "component", "add", "rustfmt"}).
+		WithExec([]string{"cargo", "fmt", "--all", "--check"}).
+		Stdout(ctx)
+}
+
+// Check runs cargo check
+func (m *SunApi) Check(ctx context.Context, source *dagger.Directory) (string, error) {
+	return m.rustContainer().
+		WithMountedDirectory("/src", source).
+		WithWorkdir("/src").
+		WithExec([]string{"cargo", "check", "--all-targets", "--all-features"}).
+		Stdout(ctx)
+}
+
+// Clippy runs cargo clippy with warnings denied
+func (m *SunApi) Clippy(ctx context.Context, source *dagger.Directory) (string, error) {
+	return m.rustContainer().
+		WithMountedDirectory("/src", source).
+		WithWorkdir("/src").
+		WithExec([]string{"rustup", "component", "add", "clippy"}).
+		WithExec([]string{"cargo", "clippy", "--all-targets", "--all-features", "--", "-D", "warnings"}).
+		Stdout(ctx)
+}
+
+// Test runs cargo test
+func (m *SunApi) Test(ctx context.Context, source *dagger.Directory) (string, error) {
+	return m.rustContainer().
+		WithMountedDirectory("/src", source).
+		WithWorkdir("/src").
+		WithExec([]string{"cargo", "test", "--all-targets", "--all-features"}).
+		Stdout(ctx)
+}
+
+// Build compiles the sunapi binary in release mode and returns it
+func (m *SunApi) Build(ctx context.Context, source *dagger.Directory) *dagger.File {
+	return m.rustContainer().
+		WithMountedDirectory("/src", source).
+		WithWorkdir("/src").
+		WithExec([]string{"cargo", "build", "--release", "--package", "sunapi", "--bin", "sunapi"}).
+		File("/src/target/release/sunapi")
+}
+
+// BuildContainer builds a minimal Wolfi-based container with the sunapi binary
+func (m *SunApi) BuildContainer(ctx context.Context, source *dagger.Directory) *dagger.Container {
+	binary := m.Build(ctx, source)
+
+	return dag.Wolfi().Container(dagger.WolfiContainerOpts{
+		Packages: []string{
+			"ca-certificates-bundle",
+			"libgcc",
+		},
+	}).
+		WithFile("/usr/local/bin/sunapi", binary).
+		WithEntrypoint([]string{"/usr/local/bin/sunapi"}).
+		WithExposedPort(3000)
+}
+
+// Publish builds and publishes the container image to a registry
+func (m *SunApi) Publish(ctx context.Context, source *dagger.Directory, address string) (string, error) {
+	return m.BuildContainer(ctx, source).Publish(ctx, address)
+}
+
+// nodeContainer returns a Wolfi container with Node.js and npm installed
+func (m *SunApi) nodeContainer() *dagger.Container {
+	return dag.Wolfi().Container(dagger.WolfiContainerOpts{
+		Packages: []string{
+			"nodejs",
+			"npm",
+		},
+	})
+}
+
+// wranglerContainer returns a Wolfi container with Wrangler, Rust (for worker-build), and npm installed
+func (m *SunApi) wranglerContainer() *dagger.Container {
+	return dag.Wolfi().Container(dagger.WolfiContainerOpts{
+		Packages: []string{
+			"nodejs",
+			"npm",
+			"rustup",
+			"build-base",
+			"clang",
+			"wasm-tools",
+		},
+	}).
+		WithExec([]string{"rustup-init", "-y", "--default-toolchain", "stable"}).
+		WithEnvVariable("PATH", "/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin").
+		WithExec([]string{"rustup", "target", "add", "wasm32-unknown-unknown"}).
+		WithExec([]string{"cargo", "install", "worker-build"}).
+		WithExec([]string{"npm", "install", "-g", "wrangler"})
+}
+
+// DeployCfWorker deploys the Cloudflare Worker using Wrangler
+func (m *SunApi) DeployCfWorker(
+	ctx context.Context,
+	source *dagger.Directory,
+	// Cloudflare API token for authentication
+	cloudflareApiToken *dagger.Secret,
+	// Optional: Cloudflare Account ID
+	// +optional
+	cloudflareAccountId string,
+) (string, error) {
+	ctr := m.wranglerContainer().
+		WithMountedDirectory("/src", source).
+		WithWorkdir("/src/sunapi-cf").
+		WithSecretVariable("CLOUDFLARE_API_TOKEN", cloudflareApiToken).
+		WithExec([]string{"npm", "install"})
+
+	if cloudflareAccountId != "" {
+		ctr = ctr.WithEnvVariable("CLOUDFLARE_ACCOUNT_ID", cloudflareAccountId)
+	}
+
+	return ctr.
+		WithExec([]string{"wrangler", "deploy"}).
+		Stdout(ctx)
+}
+
+// CfWorkerBuild builds the Cloudflare Worker without deploying
+func (m *SunApi) CfWorkerBuild(ctx context.Context, source *dagger.Directory) (string, error) {
+	return m.wranglerContainer().
+		WithMountedDirectory("/src", source).
+		WithWorkdir("/src/sunapi-cf").
+		WithExec([]string{"npm", "install"}).
+		WithExec([]string{"worker-build", "--release"}).
+		Stdout(ctx)
+}

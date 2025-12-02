@@ -15,6 +15,13 @@ a given location.
 - The `sunapi-cf` crate implements a Cloudflare Worker based on the `sunapi`
   crate.
 
+# Project Infrastructure
+
+This project uses the following supporting tools:
+
+- GitHub Actions for executing continuous integration and deployment.
+- Dagger for defining portable CI/CD pipelines and executing tasks.
+
 # Specific guidelines
 
 See @doc/*.md and @specs/**/*.md for more information.
