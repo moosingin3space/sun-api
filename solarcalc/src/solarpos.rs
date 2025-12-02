@@ -53,8 +53,12 @@ mod tests {
 
     #[test]
     fn equation_of_time() {
-        check(jiff::civil::date(2025, 11, 19), expect![[""]]);
-        check(jiff::civil::date(2025, 7, 4), expect![[""]]);
+        check(jiff::civil::date(2025, 11, 19), expect![[r#"
+            14.312655254932228
+        "#]]);
+        check(jiff::civil::date(2025, 7, 4), expect![[r#"
+            -4.049227066974504
+        "#]]);
     }
 
     #[track_caller]

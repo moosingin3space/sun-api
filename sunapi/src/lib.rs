@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::{Extension, Json, Router, body::HttpBody, extract::Query, routing::get};
 use jiff::tz::TimeZone;
 use serde::{Deserialize, Serialize};
-use solarcalc::Dms;
+use solarcalc::Coordinate;
 use utoipa::{IntoParams, OpenApi, ToSchema};
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -67,11 +67,9 @@ where
     P: Platform,
 {
     let time = platform.now();
-    let lat = Dms::from_decimal_degrees(lat);
-    let lon = Dms::from_decimal_degrees(lon);
     let location = solarcalc::Location {
-        latitude: lat,
-        longitude: lon,
+        latitude: Coordinate::from(lat),
+        longitude: Coordinate::from(lon),
     };
     // TODO the UTC assumption is wrong here
     let date = time.to_zoned(TimeZone::UTC).date();

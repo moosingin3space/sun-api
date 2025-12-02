@@ -62,13 +62,70 @@ impl fmt::Display for Dms {
     }
 }
 
+/// A coordinate that can be expressed as either decimal degrees or DMS.
+#[derive(Clone, Copy)]
+pub enum Coordinate {
+    /// Decimal degrees representation.
+    Decimal(f64),
+    /// Degree-minute-second representation.
+    Dms(Dms),
+}
+
+impl Coordinate {
+    /// Returns the coordinate in radians.
+    pub fn radians(&self) -> f64 {
+        match self {
+            Coordinate::Decimal(deg) => deg.to_radians(),
+            Coordinate::Dms(dms) => dms.radians(),
+        }
+    }
+
+    /// Returns the coordinate in fractional degrees.
+    pub fn degrees(&self) -> f64 {
+        match self {
+            Coordinate::Decimal(deg) => *deg,
+            Coordinate::Dms(dms) => dms.degrees(),
+        }
+    }
+}
+
+impl From<f64> for Coordinate {
+    fn from(degrees: f64) -> Self {
+        Coordinate::Decimal(degrees)
+    }
+}
+
+impl From<Dms> for Coordinate {
+    fn from(dms: Dms) -> Self {
+        Coordinate::Dms(dms)
+    }
+}
+
+impl fmt::Debug for Coordinate {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Coordinate::Decimal(deg) => write!(f, "{deg}°"),
+            Coordinate::Dms(dms) => fmt::Debug::fmt(dms, f),
+        }
+    }
+}
+
+impl fmt::Display for Coordinate {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Coordinate::Decimal(deg) => write!(f, "{deg}°"),
+            Coordinate::Dms(dms) => fmt::Display::fmt(dms, f),
+        }
+    }
+}
+
 /// Represents a location on Earth.
 #[derive(Debug, Clone)]
 pub struct Location {
     /// Latitude coordinate.
-    pub latitude: Dms,
+    pub latitude: Coordinate,
     /// Longitude coordinate.
-    pub longitude: Dms,
+    pub longitude: Coordinate,
 }
 
 impl fmt::Display for Location {
@@ -151,21 +208,21 @@ mod tests {
     use expect_test::{Expect, expect};
     use jiff::civil::Date;
 
-    use crate::{Dms, Location};
+    use crate::{Coordinate, Dms, Location};
 
     #[test]
     fn solar_calculations() {
         const SAN_FRANCISCO: Location = Location {
-            latitude: Dms {
+            latitude: Coordinate::Dms(Dms {
                 degrees: 37,
                 minutes: 48,
                 seconds: 0,
-            },
-            longitude: Dms {
+            }),
+            longitude: Coordinate::Dms(Dms {
                 degrees: -122,
                 minutes: 24,
                 seconds: 0,
-            },
+            }),
         };
 
         // In November, the days are short...
