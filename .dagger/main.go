@@ -11,17 +11,30 @@ import (
 
 type SunApi struct{}
 
-// withRustToolchain adds the Rust toolchain to a container
+// Cache volume names
+const (
+	cargoCacheName  = "sun-api-cargo"
+	rustupCacheName = "sun-api-rustup"
+	targetCacheName = "sun-api-target"
+	npmCacheName    = "sun-api-npm"
+)
+
+// withRustToolchain adds the Rust toolchain to a container with caching
 func (m *SunApi) withRustToolchain(ctr *dagger.Container) *dagger.Container {
 	return ctr.
+		WithMountedCache("/root/.cargo", dag.CacheVolume(cargoCacheName)).
+		WithMountedCache("/root/.rustup", dag.CacheVolume(rustupCacheName)).
+		WithEnvVariable("CARGO_HOME", "/root/.cargo").
+		WithEnvVariable("RUSTUP_HOME", "/root/.rustup").
 		WithExec([]string{"rustup-init", "-y", "--default-toolchain", "stable"}).
 		WithEnvVariable("PATH", "/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin")
 }
 
-// withSource mounts the source directory and sets the workdir
+// withSource mounts the source directory and sets the workdir with target caching
 func (m *SunApi) withSource(ctr *dagger.Container, source *dagger.Directory) *dagger.Container {
 	return ctr.
 		WithMountedDirectory("/src", source).
+		WithMountedCache("/src/target", dag.CacheVolume(targetCacheName)).
 		WithWorkdir("/src")
 }
 
@@ -105,16 +118,6 @@ func (m *SunApi) Publish(ctx context.Context, source *dagger.Directory, address 
 	return m.BuildContainer(ctx, source).Publish(ctx, address)
 }
 
-// nodeContainer returns a Wolfi container with Node.js and npm installed
-func (m *SunApi) nodeContainer() *dagger.Container {
-	return dag.Wolfi().Container(dagger.WolfiContainerOpts{
-		Packages: []string{
-			"nodejs",
-			"npm",
-		},
-	})
-}
-
 // wranglerContainer returns a Wolfi container with Wrangler, Rust (for worker-build), and npm installed
 func (m *SunApi) wranglerContainer() *dagger.Container {
 	return m.withRustToolchain(dag.Wolfi().Container(dagger.WolfiContainerOpts{
@@ -125,6 +128,7 @@ func (m *SunApi) wranglerContainer() *dagger.Container {
 			"build-base",
 			"clang",
 			"wasm-tools",
+			"curl",
 		},
 	})).
 		WithExec([]string{"rustup", "target", "add", "wasm32-unknown-unknown"}).
@@ -132,10 +136,11 @@ func (m *SunApi) wranglerContainer() *dagger.Container {
 		WithExec([]string{"npm", "install", "-g", "wrangler"})
 }
 
-// withCfWorkerSource mounts source and sets workdir to the CF worker directory
+// withCfWorkerSource mounts source and sets workdir to the CF worker directory with npm caching
 func (m *SunApi) withCfWorkerSource(ctr *dagger.Container, source *dagger.Directory) *dagger.Container {
 	return m.withSource(ctr, source).
 		WithWorkdir("/src/sunapi-cf").
+		WithMountedCache("/src/sunapi-cf/node_modules", dag.CacheVolume(npmCacheName)).
 		WithExec([]string{"npm", "install"})
 }
 
