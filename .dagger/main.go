@@ -11,9 +11,23 @@ import (
 
 type SunApi struct{}
 
+// withRustToolchain adds the Rust toolchain to a container
+func (m *SunApi) withRustToolchain(ctr *dagger.Container) *dagger.Container {
+	return ctr.
+		WithExec([]string{"rustup-init", "-y", "--default-toolchain", "stable"}).
+		WithEnvVariable("PATH", "/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin")
+}
+
+// withSource mounts the source directory and sets the workdir
+func (m *SunApi) withSource(ctr *dagger.Container, source *dagger.Directory) *dagger.Container {
+	return ctr.
+		WithMountedDirectory("/src", source).
+		WithWorkdir("/src")
+}
+
 // rustContainer returns a Wolfi container with Rust toolchain installed
 func (m *SunApi) rustContainer() *dagger.Container {
-	return dag.Wolfi().Container(dagger.WolfiContainerOpts{
+	return m.withRustToolchain(dag.Wolfi().Container(dagger.WolfiContainerOpts{
 		Packages: []string{
 			"rustup",
 			"build-base",
@@ -21,16 +35,12 @@ func (m *SunApi) rustContainer() *dagger.Container {
 			"pkgconf",
 			"curl",
 		},
-	}).
-		WithExec([]string{"rustup-init", "-y", "--default-toolchain", "stable"}).
-		WithEnvVariable("PATH", "/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin")
+	}))
 }
 
 // Lint runs cargo fmt check, cargo check, and cargo clippy with warnings denied
 func (m *SunApi) Lint(ctx context.Context, source *dagger.Directory) (string, error) {
-	return m.rustContainer().
-		WithMountedDirectory("/src", source).
-		WithWorkdir("/src").
+	return m.withSource(m.rustContainer(), source).
 		WithExec([]string{"rustup", "component", "add", "rustfmt", "clippy"}).
 		WithExec([]string{"cargo", "fmt", "--all", "--check"}).
 		WithExec([]string{"cargo", "check", "--all-targets", "--all-features"}).
@@ -40,9 +50,7 @@ func (m *SunApi) Lint(ctx context.Context, source *dagger.Directory) (string, er
 
 // Fmt runs cargo fmt check
 func (m *SunApi) Fmt(ctx context.Context, source *dagger.Directory) (string, error) {
-	return m.rustContainer().
-		WithMountedDirectory("/src", source).
-		WithWorkdir("/src").
+	return m.withSource(m.rustContainer(), source).
 		WithExec([]string{"rustup", "component", "add", "rustfmt"}).
 		WithExec([]string{"cargo", "fmt", "--all", "--check"}).
 		Stdout(ctx)
@@ -50,18 +58,14 @@ func (m *SunApi) Fmt(ctx context.Context, source *dagger.Directory) (string, err
 
 // Check runs cargo check
 func (m *SunApi) Check(ctx context.Context, source *dagger.Directory) (string, error) {
-	return m.rustContainer().
-		WithMountedDirectory("/src", source).
-		WithWorkdir("/src").
+	return m.withSource(m.rustContainer(), source).
 		WithExec([]string{"cargo", "check", "--all-targets", "--all-features"}).
 		Stdout(ctx)
 }
 
 // Clippy runs cargo clippy with warnings denied
 func (m *SunApi) Clippy(ctx context.Context, source *dagger.Directory) (string, error) {
-	return m.rustContainer().
-		WithMountedDirectory("/src", source).
-		WithWorkdir("/src").
+	return m.withSource(m.rustContainer(), source).
 		WithExec([]string{"rustup", "component", "add", "clippy"}).
 		WithExec([]string{"cargo", "clippy", "--all-targets", "--all-features", "--", "-D", "warnings"}).
 		Stdout(ctx)
@@ -69,18 +73,14 @@ func (m *SunApi) Clippy(ctx context.Context, source *dagger.Directory) (string, 
 
 // Test runs cargo test
 func (m *SunApi) Test(ctx context.Context, source *dagger.Directory) (string, error) {
-	return m.rustContainer().
-		WithMountedDirectory("/src", source).
-		WithWorkdir("/src").
+	return m.withSource(m.rustContainer(), source).
 		WithExec([]string{"cargo", "test", "--all-targets", "--all-features"}).
 		Stdout(ctx)
 }
 
 // Build compiles the sunapi binary in release mode and returns it
 func (m *SunApi) Build(ctx context.Context, source *dagger.Directory) *dagger.File {
-	return m.rustContainer().
-		WithMountedDirectory("/src", source).
-		WithWorkdir("/src").
+	return m.withSource(m.rustContainer(), source).
 		WithExec([]string{"cargo", "build", "--release", "--package", "sunapi", "--bin", "sunapi"}).
 		File("/src/target/release/sunapi")
 }
@@ -117,7 +117,7 @@ func (m *SunApi) nodeContainer() *dagger.Container {
 
 // wranglerContainer returns a Wolfi container with Wrangler, Rust (for worker-build), and npm installed
 func (m *SunApi) wranglerContainer() *dagger.Container {
-	return dag.Wolfi().Container(dagger.WolfiContainerOpts{
+	return m.withRustToolchain(dag.Wolfi().Container(dagger.WolfiContainerOpts{
 		Packages: []string{
 			"nodejs",
 			"npm",
@@ -126,12 +126,17 @@ func (m *SunApi) wranglerContainer() *dagger.Container {
 			"clang",
 			"wasm-tools",
 		},
-	}).
-		WithExec([]string{"rustup-init", "-y", "--default-toolchain", "stable"}).
-		WithEnvVariable("PATH", "/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin").
+	})).
 		WithExec([]string{"rustup", "target", "add", "wasm32-unknown-unknown"}).
 		WithExec([]string{"cargo", "install", "worker-build"}).
 		WithExec([]string{"npm", "install", "-g", "wrangler"})
+}
+
+// withCfWorkerSource mounts source and sets workdir to the CF worker directory
+func (m *SunApi) withCfWorkerSource(ctr *dagger.Container, source *dagger.Directory) *dagger.Container {
+	return m.withSource(ctr, source).
+		WithWorkdir("/src/sunapi-cf").
+		WithExec([]string{"npm", "install"})
 }
 
 // DeployCfWorker deploys the Cloudflare Worker using Wrangler
@@ -144,11 +149,8 @@ func (m *SunApi) DeployCfWorker(
 	// +optional
 	cloudflareAccountId string,
 ) (string, error) {
-	ctr := m.wranglerContainer().
-		WithMountedDirectory("/src", source).
-		WithWorkdir("/src/sunapi-cf").
-		WithSecretVariable("CLOUDFLARE_API_TOKEN", cloudflareApiToken).
-		WithExec([]string{"npm", "install"})
+	ctr := m.withCfWorkerSource(m.wranglerContainer(), source).
+		WithSecretVariable("CLOUDFLARE_API_TOKEN", cloudflareApiToken)
 
 	if cloudflareAccountId != "" {
 		ctr = ctr.WithEnvVariable("CLOUDFLARE_ACCOUNT_ID", cloudflareAccountId)
@@ -161,10 +163,7 @@ func (m *SunApi) DeployCfWorker(
 
 // CfWorkerBuild builds the Cloudflare Worker without deploying
 func (m *SunApi) CfWorkerBuild(ctx context.Context, source *dagger.Directory) (string, error) {
-	return m.wranglerContainer().
-		WithMountedDirectory("/src", source).
-		WithWorkdir("/src/sunapi-cf").
-		WithExec([]string{"npm", "install"}).
+	return m.withCfWorkerSource(m.wranglerContainer(), source).
 		WithExec([]string{"worker-build", "--release"}).
 		Stdout(ctx)
 }
