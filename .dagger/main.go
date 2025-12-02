@@ -95,7 +95,8 @@ func (m *SunApi) Test(ctx context.Context, source *dagger.Directory) (string, er
 func (m *SunApi) Build(ctx context.Context, source *dagger.Directory) *dagger.File {
 	return m.withSource(m.rustContainer(), source).
 		WithExec([]string{"cargo", "build", "--release", "--package", "sunapi", "--bin", "sunapi"}).
-		File("/src/target/release/sunapi")
+		WithExec([]string{"cp", "/src/target/release/sunapi", "/tmp/sunapi"}).
+		File("/tmp/sunapi")
 }
 
 // BuildContainer builds a minimal Wolfi-based container with the sunapi binary
