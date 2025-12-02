@@ -12,7 +12,7 @@ http = "1.3.1"
 jiff = { version = "0.2.16", features = ["serde"] }
 serde = { version = "1.0.228", features = ["derive"] }
 solarcalc = { version = "0.1.0", path = "../solarcalc" }
-tokio = { version = "1.48.0", features = ["net", "rt-multi-thread", "time"], optional = true }
+tokio = { version = "1.48.0", features = ["net", "rt-multi-thread", "time", "macros"], optional = true }
 utoipa = { version = "5.4.0", features = ["axum_extras", "jiff_0_2"] }
 utoipa-swagger-ui = { version = "9.0.2", features = ["axum"] }
 
@@ -32,4 +32,4 @@ turmoil = "0.7.0"
 
 [features]
 default = ["tokio"]
-tokio = ["dep:tokio"]
+tokio = ["dep:tokio", "axum/tokio", "axum/http1", "axum/http2"]
