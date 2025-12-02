@@ -96,6 +96,7 @@ jobs:
         with:
           version: "0.19.7"
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-          call: deploy-cf-worker --source=. --cloudflare-api-token=env:CLOUDFLARE_API_TOKEN --cloudflare-account-id=${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          call: deploy-cf-worker --source=. --cloudflare-api-token=env:CLOUDFLARE_API_TOKEN --cloudflare-account-id=env:CLOUDFLARE_ACCOUNT_ID
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

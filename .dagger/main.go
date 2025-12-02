@@ -145,18 +145,12 @@ func (m *SunApi) DeployCfWorker(
 	source *dagger.Directory,
 	// Cloudflare API token for authentication
 	cloudflareApiToken *dagger.Secret,
-	// Optional: Cloudflare Account ID
-	// +optional
-	cloudflareAccountId string,
+	// Cloudflare Account ID
+	cloudflareAccountId *dagger.Secret,
 ) (string, error) {
-	ctr := m.withCfWorkerSource(m.wranglerContainer(), source).
-		WithSecretVariable("CLOUDFLARE_API_TOKEN", cloudflareApiToken)
-
-	if cloudflareAccountId != "" {
-		ctr = ctr.WithEnvVariable("CLOUDFLARE_ACCOUNT_ID", cloudflareAccountId)
-	}
-
-	return ctr.
+	return m.withCfWorkerSource(m.wranglerContainer(), source).
+		WithSecretVariable("CLOUDFLARE_API_TOKEN", cloudflareApiToken).
+		WithSecretVariable("CLOUDFLARE_ACCOUNT_ID", cloudflareAccountId).
 		WithExec([]string{"wrangler", "deploy"}).
 		Stdout(ctx)
 }
