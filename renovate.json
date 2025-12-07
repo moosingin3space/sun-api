@@ -1,10 +1,18 @@
 {
     "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-    "extends": ["config:recommended", "helpers:pinGitHubActionDigestsToSemver"],
-    "ignorePaths": [".dagger/**"],
-    "regexManagers": [
+    "extends": [
+        "config:recommended",
+        "helpers:pinGitHubActionDigestsToSemver"
+    ],
+    "ignorePaths": [
+        ".dagger/**"
+    ],
+    "customManagers": [
         {
-            "fileMatch": ["^\\.github/workflows/.*\\.ya?ml$"],
+            "customType": "regex",
+            "managerFilePatterns": [
+                "/^\\.github/workflows/.*\\.ya?ml$/"
+            ],
             "matchStrings": [
                 "dagger/dagger-for-github@[^\\n]*[\\s\\S]*?version:\\s*?[\"'](?<currentValue>\\d+\\.\\d+\\.\\d+)?[\"']"
             ],
