@@ -50,6 +50,8 @@ struct Api;
 struct SunStateParams {
     lat: f64,
     lon: f64,
+    #[serde(default)]
+    tz: Option<String>,
 }
 
 /// Retrieves the current state of the sun at a given location.
@@ -62,7 +64,7 @@ struct SunStateParams {
     )
 )]
 async fn sun_state<P>(
-    Query(SunStateParams { lat, lon }): Query<SunStateParams>,
+    Query(SunStateParams { lat, lon, tz }): Query<SunStateParams>,
     Extension(platform): Extension<Arc<P>>,
 ) -> Json<SunState>
 where
@@ -73,9 +75,12 @@ where
         latitude: Coordinate::from(lat),
         longitude: Coordinate::from(lon),
     };
-    // TODO the UTC assumption is wrong here
-    let date = time.to_zoned(TimeZone::UTC).date();
-    let time_at_location = time.to_zoned(TimeZone::UTC);
+    let tz = tz
+        .as_deref()
+        .and_then(|s| TimeZone::get(s).ok())
+        .unwrap_or(TimeZone::UTC);
+    let date = time.to_zoned(tz.clone()).date();
+    let time_at_location = time.to_zoned(tz);
 
     let sunrise_time = solarcalc::sunrise(date, &location);
     let sunset_time = solarcalc::sunset(date, &location);
@@ -107,15 +112,14 @@ mod tests {
     fn sun_up_for_san_francisco() -> TestResult {
         const SF_LAT: f64 = 37.7749;
         const SF_LON: f64 = -122.4194;
+        const SF_TZ: &str = "America/Los_Angeles";
         let uri = Uri::builder()
             .scheme("http")
             .authority("localhost")
-            .path_and_query(format!("/sun-state?lat={SF_LAT}&lon={SF_LON}"))
+            .path_and_query(format!("/sun-state?lat={SF_LAT}&lon={SF_LON}&tz={SF_TZ}"))
             .build()?;
         check_api(
-            date(2025, 11, 22)
-                .at(23, 55, 16, 0)
-                .in_tz("America/Los_Angeles")?,
+            date(2025, 11, 22).at(23, 55, 16, 0).in_tz(SF_TZ)?,
             Request::builder()
                 .uri(uri.clone())
                 .body(Empty::<Bytes>::new())?,
@@ -125,16 +129,14 @@ mod tests {
                     version: HTTP/1.1,
                     headers: {
                         "content-type": "application/json",
-                        "content-length": "56",
+                        "content-length": "72",
                     },
-                    body: b"{\"sun_up\":false,\"time\":\"2025-11-23T07:55:16+00:00[UTC]\"}",
+                    body: b"{\"sun_up\":false,\"time\":\"2025-11-22T23:55:16-08:00[America/Los_Angeles]\"}",
                 }
             "#]],
         )?;
         check_api(
-            date(2025, 11, 22)
-                .at(13, 20, 0, 0)
-                .in_tz("America/Los_Angeles")?,
+            date(2025, 11, 22).at(13, 20, 0, 0).in_tz(SF_TZ)?,
             Request::builder().uri(uri).body(Empty::<Bytes>::new())?,
             expect![[r#"
                 Response {
@@ -142,9 +144,9 @@ mod tests {
                     version: HTTP/1.1,
                     headers: {
                         "content-type": "application/json",
-                        "content-length": "55",
+                        "content-length": "71",
                     },
-                    body: b"{\"sun_up\":true,\"time\":\"2025-11-22T21:20:00+00:00[UTC]\"}",
+                    body: b"{\"sun_up\":true,\"time\":\"2025-11-22T13:20:00-08:00[America/Los_Angeles]\"}",
                 }
             "#]],
         )
