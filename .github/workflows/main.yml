@@ -24,7 +24,7 @@ jobs:
       - name: Run lint
         uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
         with:
-          version: "0.19.7"
+          version: "0.19.8"
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           call: lint --source=.
 
@@ -41,7 +41,7 @@ jobs:
       - name: Run tests
         uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
         with:
-          version: "0.19.7"
+          version: "0.19.8"
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           call: test --source=.
 
@@ -67,14 +67,14 @@ jobs:
       - name: Build and publish container
         uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
         with:
-          version: "0.19.7"
+          version: "0.19.8"
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           call: publish --source=. --address=ghcr.io/${{ github.repository }}/sunapi:${{ github.sha }}
 
       - name: Tag as latest
         uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
         with:
-          version: "0.19.7"
+          version: "0.19.8"
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           call: publish --source=. --address=ghcr.io/${{ github.repository }}/sunapi:latest
 
@@ -94,7 +94,7 @@ jobs:
       - name: Deploy to Cloudflare
         uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
         with:
-          version: "0.19.7"
+          version: "0.19.8"
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           call: deploy-cf-worker --source=. --cloudflare-api-token=env:CLOUDFLARE_API_TOKEN --cloudflare-account-id=env:CLOUDFLARE_ACCOUNT_ID
         env:
