@@ -17,7 +17,9 @@ pub trait Platform {
     /// Schedules an outbound webhook to be sent at a specific time.
     fn schedule_webhook_at<B>(&self, when: jiff::Timestamp, req: http::Request<B>)
     where
-        B: HttpBody;
+        B: HttpBody + Send + 'static,
+        B::Data: Send,
+        B::Error: std::error::Error + Send + Sync;
 }
 
 /// Creates an Axum router for the Sun API.
@@ -226,7 +228,9 @@ mod tests {
 
         fn schedule_webhook_at<B>(&self, _when: jiff::Timestamp, _req: http::Request<B>)
         where
-            B: axum::body::HttpBody,
+            B: axum::body::HttpBody + Send + 'static,
+            B::Data: Send,
+            B::Error: std::error::Error + Send + Sync,
         {
         }
     }
