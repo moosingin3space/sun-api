@@ -1,87 +1,93 @@
 name: PR Checks
 
 on:
-  pull_request:
-    branches: [main]
+    pull_request:
+        branches: [main]
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
 
 permissions: {}
 
 jobs:
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-        with:
-          persist-credentials: false
+    lint:
+        name: Lint
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+        steps:
+            - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+              with:
+                  persist-credentials: false
 
-      - name: Run lint
-        uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
-        with:
-          version: "0.19.7"
-          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-          call: lint --source=.
+            - name: Run lint
+              uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
+              with:
+                  version: "0.19.7"
+                  cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+                  call: lint --source=.
 
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-        with:
-          persist-credentials: false
+    test:
+        name: Test
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+        steps:
+            - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+              with:
+                  persist-credentials: false
 
-      - name: Run tests
-        uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
-        with:
-          version: "0.19.7"
-          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-          call: test --source=.
+            - name: Run tests
+              uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
+              with:
+                  version: "0.19.7"
+                  cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+                  call: test --source=.
 
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-        with:
-          persist-credentials: false
+    build:
+        name: Build
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+        steps:
+            - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+              with:
+                  persist-credentials: false
 
-      - name: Build sunapi binary
-        uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
-        with:
-          version: "0.19.7"
-          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-          call: build --source=. export --path=./sunapi
+            - name: Build sunapi binary
+              uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
+              with:
+                  version: "0.19.7"
+                  cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+                  call: build --source=. export --path=./sunapi-binary-linux-x86_64
 
-      - name: Build container
-        uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
-        with:
-          version: "0.19.7"
-          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-          call: build-container --source=.
+            - name: Upload sunapi binary
+              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+              with:
+                  name: sunapi-binary-linux-x86_64
+                  path: ./sunapi-binary-linux-x86_64
 
-  build-cf-worker:
-    name: Build Cloudflare Worker
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-        with:
-          persist-credentials: false
+            - name: Build container
+              uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
+              with:
+                  version: "0.19.7"
+                  cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+                  call: build-container --source=.
 
-      - name: Build Cloudflare Worker
-        uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
-        with:
-          version: "0.19.7"
-          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-          call: cf-worker-build --source=.
+    build-cf-worker:
+        name: Build Cloudflare Worker
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+        steps:
+            - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+              with:
+                  persist-credentials: false
+
+            - name: Build Cloudflare Worker
+              uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
+              with:
+                  version: "0.19.7"
+                  cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+                  call: cf-worker-build --source=.
