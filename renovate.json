@@ -27,7 +27,7 @@
             "customType": "regex",
             "managerFilePatterns": ["/^dagger\\.json$/"],
             "matchStrings": [
-                "\"source\":\\s*\"github\\.com/(?<packageName>[^/]+/[^/]+)(?<modulePath>/[^@]+)?@(?<currentValue>[^\"]+)\""
+                "\"source\":\\s*\"github\\.com/(?<packageName>[^/]+/[^/]+)(?<modulePath>/[^@]+)?@(?<currentValue>[^\"]+)\",\\s*\"pin\":\\s*\"[^\"]+\""
             ],
             "depNameTemplate": "github.com/{{{packageName}}}{{{modulePath}}}",
             "datasourceTemplate": "github-tags",
@@ -38,13 +38,7 @@
         {
             "description": "Automatically merge Dagger module pin updates and run dagger develop",
             "matchManagers": ["custom.regex"],
-            "matchDatasources": ["github-tags"],
-            "postUpgradeTasks": {
-                "commands": ["dagger develop"],
-                "executionMode": "branch",
-                "fileFilters": ["dagger.json"]
-            }
+            "matchDatasources": ["github-tags"]
         }
-    ],
-    "allowedCommands": ["^dagger develop$"]
+    ]
 }
