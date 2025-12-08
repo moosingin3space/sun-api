@@ -22,6 +22,28 @@
             "datasourceTemplate": "github-releases",
             "depNameTemplate": "dagger/dagger",
             "versioningTemplate": "semver"
+        },
+        {
+            "customType": "regex",
+            "managerFilePatterns": ["/^dagger\\.json$/"],
+            "matchStrings": [
+                "\"source\":\\s*\"(?<depName>github\\.com/[^/]+/[^@]+)@(?<currentValue>[^\"]+)\""
+            ],
+            "datasourceTemplate": "github-tags",
+            "versioningTemplate": "semver"
         }
-    ]
+    ],
+    "packageRules": [
+        {
+            "description": "Automatically merge Dagger module pin updates and run dagger develop",
+            "matchManagers": ["custom.regex"],
+            "matchDatasources": ["github-tags"],
+            "postUpgradeTasks": {
+                "commands": ["dagger develop"],
+                "executionMode": "branch",
+                "fileFilters": ["dagger.json"]
+            }
+        }
+    ],
+    "allowedCommands": ["^dagger develop$"]
 }
