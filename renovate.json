@@ -27,9 +27,9 @@
             "customType": "regex",
             "managerFilePatterns": ["/^dagger\\.json$/"],
             "matchStrings": [
-                "\"source\":\\s*\"(?<packageName>github\\.com/[^/]+/[^/]+)(?<modulePath>/[^@]+)?@(?<currentValue>[^\"]+)\""
+                "\"source\":\\s*\"github\\.com/(?<packageName>[^/]+/[^/]+)(?<modulePath>/[^@]+)?@(?<currentValue>[^\"]+)\""
             ],
-            "depNameTemplate": "{{{packageName}}}{{{modulePath}}}",
+            "depNameTemplate": "github.com/{{{packageName}}}{{{modulePath}}}",
             "datasourceTemplate": "github-tags",
             "versioningTemplate": "semver"
         }
