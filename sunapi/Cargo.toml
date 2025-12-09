@@ -32,6 +32,8 @@ hyper-util = { version = "0.1.18", features = ["client-legacy"] }
 serde_json = "1.0.145"
 testresult = "0.4.1"
 tower = "0.5.2"
+tracing = "0.1.44"
+tracing-subscriber = "0.3.22"
 turmoil = "0.7.0"
 
 [features]

@@ -18,7 +18,7 @@ impl Platform for TokioPlatform {
         B::Data: Send,
         B::Error: Error + Send + Sync,
     {
-        sunapi::scheduler::schedule_webhook_with_client(when, req, |webhook_req| {
+        sunapi::scheduler::schedule_webhook_with_client(self.now(), when, req, |webhook_req| {
             Box::pin(async move {
                 let client = reqwest::Client::new();
                 let (parts, body) = webhook_req.into_parts();

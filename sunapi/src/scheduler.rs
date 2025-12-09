@@ -9,8 +9,19 @@ use http_body_util::BodyExt;
 ///
 /// This function spawns an async task that collects the request body, sleeps until
 /// the scheduled time, and then sends the request via the provided client.
-pub fn schedule_webhook_with_client<B, C>(when: jiff::Timestamp, req: http::Request<B>, client: C)
-where
+///
+/// # Arguments
+///
+/// * `now` - The current time (used to determine if the webhook is in the past)
+/// * `when` - The time when the webhook should be sent
+/// * `req` - The HTTP request to send
+/// * `client` - The HTTP client to use for sending the webhook
+pub fn schedule_webhook_with_client<B, C>(
+    now: jiff::Timestamp,
+    when: jiff::Timestamp,
+    req: http::Request<B>,
+    client: C,
+) where
     B: HttpBody + Send + 'static,
     B::Data: Send,
     B::Error: Error + Send + Sync,
@@ -19,7 +30,7 @@ where
         http::Request<Vec<u8>>,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + 'static>>,
 {
-    if when < jiff::Timestamp::now() {
+    if when < now {
         // No point in scheduling a webhook in the past
         return;
     }
@@ -37,7 +48,7 @@ where
         let http_req = http::Request::from_parts(parts, body_bytes.to_vec());
 
         // Sleep until the scheduled time
-        let time_delta = jiff::Timestamp::now()
+        let time_delta = now
             .until(when)
             .ok()
             .and_then(|d| std::time::Duration::try_from(d).ok());

@@ -16,7 +16,7 @@ impl Platform for SimPlatform {
         B::Data: Send,
         B::Error: std::error::Error + Send + Sync,
     {
-        schedule_webhook_with_client(when, req, |webhook_req| {
+        schedule_webhook_with_client(self.now(), when, req, |webhook_req| {
             Box::pin(async move {
                 let client = hyper_util::client::legacy::Client::builder(TokioExecutor::new())
                     .timer(TokioTimer::new())
@@ -25,7 +25,7 @@ impl Platform for SimPlatform {
                 let (parts, body) = webhook_req.into_parts();
                 let body = axum::body::Body::from(body);
                 let req = http::Request::from_parts(parts, body);
-                let _ = client.request(req).await;
+                client.request(req).await.unwrap();
             })
         });
     }
