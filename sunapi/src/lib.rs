@@ -3,11 +3,15 @@
 use std::sync::Arc;
 
 use axum::{Extension, Json, Router, body::HttpBody, extract::Query, routing::get};
+
 use jiff::tz::TimeZone;
 use serde::{Deserialize, Serialize};
 use solarcalc::Coordinate;
 use utoipa::{IntoParams, OpenApi, ToSchema};
 use utoipa_swagger_ui::SwaggerUi;
+
+#[cfg(feature = "tokio")]
+pub mod scheduler;
 
 /// A platform that the Sun API runs on.
 pub trait Platform {
