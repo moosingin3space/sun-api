@@ -4,7 +4,7 @@ on:
         branches:
             - "renovate/**"
         paths:
-            - "./dagger.json"
+            - "dagger.json"
 
 jobs:
     update-pin:
