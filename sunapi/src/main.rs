@@ -47,9 +47,11 @@ impl Platform for TokioPlatform {
 
             let client = reqwest::Client::new();
             let _ = client
-                .execute(reqwest_req.try_into().unwrap_or_else(|_| {
-                    panic!("Failed to convert http::Request to reqwest::Request")
-                }))
+                .execute(
+                    reqwest_req
+                        .try_into()
+                        .expect("couldn't convert http::Request to reqwest::Request"),
+                )
                 .await;
         });
     }

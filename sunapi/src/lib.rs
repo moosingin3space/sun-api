@@ -93,29 +93,25 @@ where
 }
 
 #[cfg(test)]
-mod tests {
-    use std::{
-        net::{IpAddr, Ipv4Addr, SocketAddr},
-        sync::Arc,
-    };
+mod test_utils;
 
-    use axum::body::{Bytes, HttpBody};
-    use const_format::formatcp;
-    use expect_test::{Expect, expect};
-    use http::{Request, Uri, uri::Authority};
-    use http_body_util::{BodyExt, Empty};
-    use hyper_util::rt::{TokioExecutor, TokioTimer};
+#[cfg(test)]
+mod tests {
+    use axum::body::Bytes;
+    use expect_test::expect;
+    use http::Request;
+    use http_body_util::Empty;
     use jiff::civil::date;
     use testresult::TestResult;
-    use tokio::sync::Notify;
-    use tower::BoxError;
+
+    use crate::test_utils::check_api;
 
     #[test]
     fn sun_up_for_san_francisco() -> TestResult {
         const SF_LAT: f64 = 37.7749;
         const SF_LON: f64 = -122.4194;
         const SF_TZ: &str = "America/Los_Angeles";
-        let uri = Uri::builder()
+        let uri = http::Uri::builder()
             .scheme("http")
             .authority("localhost")
             .path_and_query(format!("/sun-state?lat={SF_LAT}&lon={SF_LON}&tz={SF_TZ}"))
@@ -152,175 +148,5 @@ mod tests {
                 }
             "#]],
         )
-    }
-
-    #[track_caller]
-    fn check_api<B>(time: jiff::Zoned, req: Request<B>, expected: Expect) -> TestResult
-    where
-        B: HttpBody<Data: Send, Error: Into<BoxError> + Send> + Send + Unpin + 'static,
-    {
-        const SERVER: &str = "server";
-        const CLIENT: &str = "client";
-        const PORT: u16 = 9999;
-
-        const SERVER_AUTHORITY: &str = formatcp!("{SERVER}:{PORT}");
-
-        let server_up = Arc::new(Notify::new());
-
-        let mut sim = turmoil::Builder::new().build();
-        sim.host(SERVER, {
-            let server_up = Arc::clone(&server_up);
-            let current_time = time.timestamp();
-            move || {
-                let server_up = Arc::clone(&server_up);
-                async move {
-                    let router = super::create_router(SimPlatform { current_time });
-
-                    let listener =
-                        connector::listen(SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), PORT))
-                            .await?;
-                    server_up.notify_one();
-                    axum::serve(listener, router.into_make_service()).await?;
-                    Ok(())
-                }
-            }
-        });
-
-        sim.client(CLIENT, async move {
-            server_up.notified().await;
-            let client = hyper_util::client::legacy::Client::builder(TokioExecutor::new())
-                .timer(TokioTimer::new())
-                .build(connector::connector());
-
-            let mut req = req;
-            {
-                let uri = req.uri().clone();
-                let mut parts = uri.into_parts();
-                parts.authority = Some(Authority::from_static(SERVER_AUTHORITY));
-                *req.uri_mut() = Uri::from_parts(parts).unwrap();
-            }
-            let res = client.request(req).await?;
-            let (parts, body) = res.into_parts();
-            let parts = {
-                let mut parts = parts;
-                parts.headers.remove(http::header::DATE);
-                parts
-            };
-            let body = body.collect().await?.to_bytes();
-            let res = http::Response::from_parts(parts, body);
-            expected.assert_debug_eq(&res);
-
-            Ok(())
-        });
-
-        sim.run()?;
-        Ok(())
-    }
-
-    struct SimPlatform {
-        current_time: jiff::Timestamp,
-    }
-
-    impl super::Platform for SimPlatform {
-        fn now(&self) -> jiff::Timestamp {
-            self.current_time
-        }
-
-        fn schedule_webhook_at<B>(&self, _when: jiff::Timestamp, _req: http::Request<B>)
-        where
-            B: axum::body::HttpBody + Send + 'static,
-            B::Data: Send,
-            B::Error: std::error::Error + Send + Sync,
-        {
-        }
-    }
-
-    mod connector {
-        use std::{
-            io,
-            net::SocketAddr,
-            pin::Pin,
-            task::{Context, Poll},
-        };
-
-        use http::Uri;
-        use hyper_util::rt::TokioIo;
-        use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
-        use tower::Service;
-        use turmoil::net::{TcpListener, TcpStream};
-
-        pub struct Listener(pub TcpListener);
-        pub struct Stream(pub TcpStream);
-
-        pub async fn listen(addr: SocketAddr) -> io::Result<Listener> {
-            Ok(Listener(TcpListener::bind(addr).await?))
-        }
-
-        pub type ConnectFuture = Pin<Box<dyn Future<Output = io::Result<TokioIo<Stream>>> + Send>>;
-        pub fn connector()
-        -> impl Service<
-            Uri,
-            Response = TokioIo<Stream>,
-            Error = io::Error,
-            Future = ConnectFuture,
-        > + Clone {
-            let connector = |uri: Uri| {
-                Box::pin(async move {
-                    let stream = TcpStream::connect(uri.authority().unwrap().as_str()).await?;
-                    Ok(TokioIo::new(Stream(stream)))
-                }) as ConnectFuture
-            };
-            tower::service_fn(connector)
-        }
-
-        impl axum::serve::Listener for Listener {
-            type Io = Stream;
-            type Addr = SocketAddr;
-
-            async fn accept(&mut self) -> (Self::Io, Self::Addr) {
-                self.0.accept().await.map(|(x, y)| (Stream(x), y)).unwrap()
-            }
-
-            fn local_addr(&self) -> io::Result<SocketAddr> {
-                self.0.local_addr()
-            }
-        }
-
-        impl AsyncRead for Stream {
-            fn poll_read(
-                mut self: Pin<&mut Self>,
-                cx: &mut Context<'_>,
-                buf: &mut ReadBuf<'_>,
-            ) -> Poll<io::Result<()>> {
-                Pin::new(&mut self.0).poll_read(cx, buf)
-            }
-        }
-
-        impl AsyncWrite for Stream {
-            fn poll_write(
-                mut self: Pin<&mut Self>,
-                cx: &mut Context<'_>,
-                buf: &[u8],
-            ) -> Poll<io::Result<usize>> {
-                Pin::new(&mut self.0).poll_write(cx, buf)
-            }
-
-            fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
-                Pin::new(&mut self.0).poll_flush(cx)
-            }
-
-            fn poll_shutdown(
-                mut self: Pin<&mut Self>,
-                cx: &mut Context<'_>,
-            ) -> Poll<io::Result<()>> {
-                Pin::new(&mut self.0).poll_shutdown(cx)
-            }
-        }
-
-        impl hyper_util::client::legacy::connect::Connection for Stream {
-            fn connected(&self) -> hyper_util::client::legacy::connect::Connected {
-                hyper_util::client::legacy::connect::Connected::new()
-            }
-        }
     }
 }
