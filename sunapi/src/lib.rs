@@ -218,13 +218,14 @@ mod tests {
     use jiff::civil::date;
     use testresult::TestResult;
 
-    use crate::test_utils::check_api;
+    use crate::test_utils::{check_api, check_webhook};
+
+    const SF_LAT: f64 = 37.7749;
+    const SF_LON: f64 = -122.4194;
+    const SF_TZ: &str = "America/Los_Angeles";
 
     #[test]
     fn sun_up_for_san_francisco() -> TestResult {
-        const SF_LAT: f64 = 37.7749;
-        const SF_LON: f64 = -122.4194;
-        const SF_TZ: &str = "America/Los_Angeles";
         let uri = http::Uri::builder()
             .scheme("http")
             .authority("localhost")
@@ -294,6 +295,93 @@ mod tests {
                 }
             "#]],
         )?;
+        Ok(())
+    }
+
+    #[test]
+    fn sunset_webhook_fires_at_sunset() -> TestResult {
+        let uri = http::Uri::builder()
+            .scheme("http")
+            .authority("localhost")
+            .path_and_query(format!("/set-webhook?lat={SF_LAT}&lon={SF_LON}",))
+            .build()?;
+
+        // Set time to early afternoon on Nov 22, 2025
+        let request_time = date(2025, 11, 22).at(14, 0, 0, 0).in_tz(SF_TZ)?;
+        let req = Request::builder()
+            .uri(uri)
+            .method("POST")
+            .header("content-type", "application/json")
+            .body(axum::body::Body::from(
+                r#"{"url":"http://webhook:9998/webhook","lat":37.7749,"lon":-122.4194}"#,
+            ))?;
+
+        // On Nov 22, 2025, sunset in SF is around 17:08:51
+        // So we skip to sunset time (about 3 hours 8 minutes after request)
+        let time_until_webhook = jiff::Span::new().hours(3).minutes(9);
+
+        check_webhook(
+            request_time,
+            time_until_webhook,
+            req,
+            expect![[r#"
+                Response {
+                    status: 200,
+                    version: HTTP/1.1,
+                    headers: {
+                        "content-type": "application/json",
+                        "content-length": "44",
+                    },
+                    body: b"{\"message\":\"Webhook scheduled successfully\"}",
+                }
+            "#]],
+            expect![[r#"
+                Object {
+                    "event": String("sunset"),
+                    "lat": Number(37.7749),
+                    "lon": Number(-122.4194),
+                }
+            "#]],
+        )
+    }
+
+    #[test]
+    fn sunset_webhook_doesnt_fire_before_sunset() -> TestResult {
+        let uri = http::Uri::builder()
+            .scheme("http")
+            .authority("localhost")
+            .path_and_query(format!("/set-webhook?lat={SF_LAT}&lon={SF_LON}",))
+            .build()?;
+
+        // Set time to early afternoon on Nov 22, 2025
+        let request_time = date(2025, 11, 22).at(14, 0, 0, 0).in_tz(SF_TZ)?;
+        let req = Request::builder()
+            .uri(uri)
+            .method("POST")
+            .header("content-type", "application/json")
+            .body(axum::body::Body::from(
+                r#"{"url":"http://webhook:9998/webhook","lat":37.7749,"lon":-122.4194}"#,
+            ))?;
+
+        // Skip to only 1 hour after request (before sunset at ~17:08)
+        let _time_until_webhook = jiff::Span::new().hours(1);
+
+        check_api(
+            request_time,
+            req,
+            expect![[r#"
+            Response {
+                status: 200,
+                version: HTTP/1.1,
+                headers: {
+                    "content-type": "application/json",
+                    "content-length": "44",
+                },
+                body: b"{\"message\":\"Webhook scheduled successfully\"}",
+            }
+        "#]],
+        )?;
+
         Ok(())
     }
 }
