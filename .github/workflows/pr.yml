@@ -75,9 +75,10 @@ jobs:
                   cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
                   call: build-container --source=.
 
-    build-cf-worker:
-        name: Build Cloudflare Worker
+    test-cf-worker:
+        name: Test Cloudflare Worker
         runs-on: ubuntu-latest
+        needs: [lint, test]
         permissions:
             contents: read
         steps:
@@ -85,9 +86,9 @@ jobs:
               with:
                   persist-credentials: false
 
-            - name: Build Cloudflare Worker
+            - name: Run Cloudflare Worker tests
               uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
               with:
                   version: "0.19.8"
                   cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-                  call: cf-worker-build --source=.
+                  call: cf-worker-test --source=.
