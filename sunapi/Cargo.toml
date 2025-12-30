@@ -12,7 +12,7 @@ bytes = "1.8.0"
 http = "1.3.1"
 http-body-util = "0.1.3"
 jiff = { version = "0.2.16", features = ["serde"] }
-reqwest = { version = "0.12.12", features = ["stream"], optional = true }
+reqwest = { version = "0.13.0", features = ["stream"], optional = true }
 serde = { version = "1.0.228", features = ["derive"] }
 solarcalc = { version = "0.1.0", path = "../solarcalc" }
 tokio = { version = "1.48.0", features = ["net", "rt-multi-thread", "time", "macros"], optional = true }
