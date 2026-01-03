@@ -156,7 +156,7 @@ func (m *SunApi) DeployCfWorker(
 	return m.withCfWorkerSource(m.wranglerContainer(), source).
 		WithSecretVariable("CLOUDFLARE_API_TOKEN", cloudflareApiToken).
 		WithSecretVariable("CLOUDFLARE_ACCOUNT_ID", cloudflareAccountId).
-		WithExec([]string{"wrangler", "deploy"}).
+		WithExec([]string{"npx", "wrangler", "deploy"}).
 		Stdout(ctx)
 }
 
