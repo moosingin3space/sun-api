@@ -134,10 +134,23 @@ impl fmt::Display for Location {
     }
 }
 
+/// Adjusts minutes to be within a 24-hour day (0-1440), adjusting the date if needed.
+fn normalize_day_minutes(minutes: f64, date: Date) -> (f64, Date) {
+    if minutes < 0.0 {
+        (minutes + 1440.0, date.yesterday().unwrap())
+    } else if minutes >= 1440.0 {
+        (minutes - 1440.0, date.tomorrow().unwrap())
+    } else {
+        (minutes, date)
+    }
+}
+
 /// Returns the solar noon timestamp for the given date.
 pub fn solar_noon(date: Date, location: &Location) -> jiff::Timestamp {
     let long_degrees = location.longitude.degrees();
     let solar_noon_minutes = 720.0 - 4.0 * long_degrees - solarpos::equation_of_time(date);
+    let (solar_noon_minutes, date) = normalize_day_minutes(solar_noon_minutes, date);
+
     let solar_noon_hours = solar_noon_minutes / 60.0;
     let solar_noon_hour = solar_noon_hours.floor() as i8;
     let solar_noon_minute = (solar_noon_hours.fract() * 60.0).floor() as i8;
@@ -158,6 +171,8 @@ pub fn sunrise(date: Date, location: &Location) -> jiff::Timestamp {
     let long_degrees = location.longitude.degrees();
     let ha = solarpos::hour_angle(date, location.latitude.radians());
     let sunrise_minutes = 720.0 - 4.0 * (long_degrees + ha) - solarpos::equation_of_time(date);
+    let (sunrise_minutes, date) = normalize_day_minutes(sunrise_minutes, date);
+
     let sunrise_hours = sunrise_minutes / 60.0;
     let sunrise_hour = sunrise_hours.floor() as i8;
     let sunrise_minute = (sunrise_hours.fract() * 60.0).floor() as i8;
@@ -178,11 +193,8 @@ pub fn sunset(date: Date, location: &Location) -> jiff::Timestamp {
     let long_degrees = location.longitude.degrees();
     let ha = solarpos::hour_angle(date, location.latitude.radians());
     let sunset_minutes = 720.0 - 4.0 * (long_degrees - ha) - solarpos::equation_of_time(date);
-    let (sunset_minutes, next_day) = if sunset_minutes > 1440.0 {
-        (sunset_minutes - 1440.0, true)
-    } else {
-        (sunset_minutes, false)
-    };
+    let (sunset_minutes, date) = normalize_day_minutes(sunset_minutes, date);
+
     let sunset_hours = sunset_minutes / 60.0;
     let sunset_hour = sunset_hours.floor() as i8;
     let sunset_minute = (sunset_hours.fract() * 60.0).floor() as i8;
@@ -194,11 +206,6 @@ pub fn sunset(date: Date, location: &Location) -> jiff::Timestamp {
         .second(sunset_second)
         .build()
         .unwrap();
-    let date = if next_day {
-        date.tomorrow().unwrap()
-    } else {
-        date
-    };
     let datetime = jiff::civil::DateTime::from_parts(date, time);
     datetime.to_zoned(TimeZone::UTC).unwrap().timestamp()
 }
@@ -274,5 +281,42 @@ mod tests {
         expected.noon.assert_debug_eq(&noon);
         expected.sunrise.assert_debug_eq(&sunrise);
         expected.sunset.assert_debug_eq(&sunset);
+    }
+
+    #[test]
+    fn sunrise_with_negative_hour_calculation() {
+        // Tokyo at extreme eastern longitude (+139.65°) produces negative hours
+        // in the sunrise calculation: 720 - 4*(139.65 + hour_angle) - eqtime < 0
+        const TOKYO: Location = Location {
+            latitude: Coordinate::Decimal(35.6762),
+            longitude: Coordinate::Decimal(139.6503),
+        };
+        let date = jiff::civil::date(2025, 1, 2);
+        // This should not panic
+        let _sunrise = super::sunrise(date, &TOKYO);
+    }
+
+    #[test]
+    fn solar_noon_with_negative_hour_calculation() {
+        // Tokyo's eastern longitude causes negative hours in solar_noon
+        const TOKYO: Location = Location {
+            latitude: Coordinate::Decimal(35.6762),
+            longitude: Coordinate::Decimal(139.6503),
+        };
+        let date = jiff::civil::date(2025, 1, 2);
+        // This should not panic
+        let _noon = super::solar_noon(date, &TOKYO);
+    }
+
+    #[test]
+    fn sunset_with_negative_hour_calculation() {
+        // Tokyo's eastern longitude causes negative hours in sunset
+        const TOKYO: Location = Location {
+            latitude: Coordinate::Decimal(35.6762),
+            longitude: Coordinate::Decimal(139.6503),
+        };
+        let date = jiff::civil::date(2025, 1, 2);
+        // This should not panic
+        let _sunset = super::sunset(date, &TOKYO);
     }
 }

@@ -153,4 +153,37 @@ mod tests {
             "#]],
         )
     }
+
+    #[test]
+    fn sunrise_calculation_with_extreme_longitude() -> TestResult {
+        // Tokyo has longitude +139.69, which causes negative hours in sunrise calculations
+        const TOKYO_LAT: f64 = 35.6762;
+        const TOKYO_LON: f64 = 139.6503;
+        const TOKYO_TZ: &str = "Asia/Tokyo";
+        let uri = http::Uri::builder()
+            .scheme("http")
+            .authority("localhost")
+            .path_and_query(format!(
+                "/sun-state?lat={TOKYO_LAT}&lon={TOKYO_LON}&tz={TOKYO_TZ}"
+            ))
+            .build()?;
+
+        // This request should not panic - it should handle the negative hour case
+        check_api(
+            date(2025, 1, 2).at(0, 0, 0, 0).in_tz(TOKYO_TZ)?,
+            Request::builder().uri(uri).body(Empty::<Bytes>::new())?,
+            expect![[r#"
+                Response {
+                    status: 200,
+                    version: HTTP/1.1,
+                    headers: {
+                        "content-type": "application/json",
+                        "content-length": "63",
+                    },
+                    body: b"{\"sun_up\":false,\"time\":\"2025-01-02T00:00:00+09:00[Asia/Tokyo]\"}",
+                }
+            "#]],
+        )?;
+        Ok(())
+    }
 }
