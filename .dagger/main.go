@@ -133,8 +133,7 @@ func (m *SunApi) wranglerContainer() *dagger.Container {
 		},
 	})).
 		WithExec([]string{"rustup", "target", "add", "wasm32-unknown-unknown"}).
-		WithExec([]string{"cargo", "install", "worker-build"}).
-		WithExec([]string{"npm", "install", "-g", "wrangler"})
+		WithExec([]string{"cargo", "install", "worker-build"})
 }
 
 // withCfWorkerSource mounts source and sets workdir to the CF worker directory with npm caching
@@ -165,5 +164,13 @@ func (m *SunApi) DeployCfWorker(
 func (m *SunApi) CfWorkerBuild(ctx context.Context, source *dagger.Directory) (string, error) {
 	return m.withCfWorkerSource(m.wranglerContainer(), source).
 		WithExec([]string{"worker-build", "--release"}).
+		Stdout(ctx)
+}
+
+// CfWorkerTest runs tests for the Cloudflare Worker
+func (m *SunApi) CfWorkerTest(ctx context.Context, source *dagger.Directory) (string, error) {
+	return m.withCfWorkerSource(m.wranglerContainer(), source).
+		WithExec([]string{"npx", "wrangler", "deploy", "--dry-run"}).
+		WithExec([]string{"npx", "vitest", "run"}).
 		Stdout(ctx)
 }
