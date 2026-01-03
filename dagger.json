@@ -7,7 +7,7 @@
   "dependencies": [
     {
       "name": "wolfi",
-      "source": "github.com/dagger/dagger/modules/wolfi@v0.19.7",
+      "source": "github.com/dagger/dagger/modules/wolfi@v0.19.8",
       "pin": "81fe990dd3cd47ae45dd91ba680f8854aa56aa66"
     }
   ],
