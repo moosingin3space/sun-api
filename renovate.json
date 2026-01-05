@@ -32,6 +32,15 @@
             "depNameTemplate": "github.com/{{{packageName}}}{{{modulePath}}}",
             "datasourceTemplate": "github-tags",
             "versioningTemplate": "semver"
+        },
+        {
+            "customType": "jsonata",
+            "managerFilePatterns": ["rust-toolchain.toml"],
+            "matchStrings": ["{ 'currentValue': $.toolchain.channel }"],
+            "datasourceTemplate": "github-releases",
+            "packageNameTemplate": "rust-lang/rust",
+            "depNameTemplate": "rust",
+            "versioningTemplate": "semver"
         }
     ],
     "packageRules": [
