@@ -4,23 +4,23 @@
     "ignorePaths": [".dagger/**"],
     "customManagers": [
         {
-            "customType": "regex",
+            "customType": "jsonata",
+            "fileFormat": "yaml",
             "managerFilePatterns": ["/^\\.github/workflows/.*\\.ya?ml$/"],
             "matchStrings": [
-                "dagger/dagger-for-github@[^\\n]*[\\s\\S]*?version:\\s*?[\"'](?<currentValue>\\d+\\.\\d+\\.\\d+)?[\"']"
+                "$each(jobs, function($j) { $j.*.steps[uses =~ /dagger\\/dagger-for-github/].({ \"depName\": \"dagger/dagger\", \"currentValue\": $j.*.steps[uses =~ /dagger\\/dagger-for-github/].with.version }) })"
             ],
             "datasourceTemplate": "github-releases",
-            "depNameTemplate": "dagger/dagger",
             "versioningTemplate": "semver"
         },
         {
-            "customType": "regex",
+            "customType": "jsonata",
+            "fileFormat": "json",
             "managerFilePatterns": ["/^dagger\\.json$/"],
             "matchStrings": [
-                "\"engineVersion\":\\s*\"(?<currentValue>v\\d+\\.\\d+\\.\\d+)\""
+                "{ \"depName\": \"dagger/dagger\", \"currentValue\": engineVersion }"
             ],
             "datasourceTemplate": "github-releases",
-            "depNameTemplate": "dagger/dagger",
             "versioningTemplate": "semver"
         },
         {
@@ -42,13 +42,6 @@
             "packageNameTemplate": "rust-lang/rust",
             "depNameTemplate": "rust",
             "versioningTemplate": "semver"
-        }
-    ],
-    "packageRules": [
-        {
-            "description": "Automatically merge Dagger module pin updates and run dagger develop",
-            "matchManagers": ["custom.regex"],
-            "matchDatasources": ["github-tags"]
         }
     ]
 }
