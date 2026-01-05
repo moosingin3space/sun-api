@@ -130,10 +130,16 @@ func (m *SunApi) wranglerContainer() *dagger.Container {
 			"clang",
 			"wasm-tools",
 			"curl",
+			"worker-build",
+		},
+		ExtraRepositories: []string{
+			"https://moosingin3space.github.io/wolfi-pkgs",
+		},
+		ExtraKeyUrls: []string{
+			"https://moosingin3space.github.io/wolfi-pkgs/melange.rsa.pub",
 		},
 	})).
-		WithExec([]string{"rustup", "target", "add", "wasm32-unknown-unknown"}).
-		WithExec([]string{"cargo", "install", "worker-build"})
+		WithExec([]string{"rustup", "target", "add", "wasm32-unknown-unknown"})
 }
 
 // withCfWorkerSource mounts source and sets workdir to the CF worker directory with npm caching
