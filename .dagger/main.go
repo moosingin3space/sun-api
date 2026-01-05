@@ -26,8 +26,14 @@ func (m *SunApi) withRustToolchain(ctr *dagger.Container) *dagger.Container {
 		WithMountedCache("/root/.rustup", dag.CacheVolume(rustupCacheName)).
 		WithEnvVariable("CARGO_HOME", "/root/.cargo").
 		WithEnvVariable("RUSTUP_HOME", "/root/.rustup").
-		WithExec([]string{"rustup-init", "-y", "--default-toolchain", "stable"}).
+		WithExec([]string{"rustup-init", "-y", "--default-toolchain", "none"}).
 		WithEnvVariable("PATH", "/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin")
+}
+
+// withSourceAndToolchain mounts the source directory and installs the toolchain from rust-toolchain.toml
+func (m *SunApi) withSourceAndToolchain(ctr *dagger.Container, source *dagger.Directory) *dagger.Container {
+	return m.withSource(ctr, source).
+		WithExec([]string{"rustup", "toolchain", "install"})
 }
 
 // withSource mounts the source directory and sets the workdir with target caching
@@ -53,7 +59,7 @@ func (m *SunApi) rustContainer() *dagger.Container {
 
 // Lint runs cargo fmt check, cargo check, and cargo clippy with warnings denied
 func (m *SunApi) Lint(ctx context.Context, source *dagger.Directory) (string, error) {
-	return m.withSource(m.rustContainer(), source).
+	return m.withSourceAndToolchain(m.rustContainer(), source).
 		WithExec([]string{"rustup", "component", "add", "rustfmt", "clippy"}).
 		WithExec([]string{"cargo", "fmt", "--all", "--check"}).
 		WithExec([]string{"cargo", "check", "--all-targets", "--all-features"}).
@@ -63,7 +69,7 @@ func (m *SunApi) Lint(ctx context.Context, source *dagger.Directory) (string, er
 
 // Fmt runs cargo fmt check
 func (m *SunApi) Fmt(ctx context.Context, source *dagger.Directory) (string, error) {
-	return m.withSource(m.rustContainer(), source).
+	return m.withSourceAndToolchain(m.rustContainer(), source).
 		WithExec([]string{"rustup", "component", "add", "rustfmt"}).
 		WithExec([]string{"cargo", "fmt", "--all", "--check"}).
 		Stdout(ctx)
@@ -71,14 +77,14 @@ func (m *SunApi) Fmt(ctx context.Context, source *dagger.Directory) (string, err
 
 // Check runs cargo check
 func (m *SunApi) Check(ctx context.Context, source *dagger.Directory) (string, error) {
-	return m.withSource(m.rustContainer(), source).
+	return m.withSourceAndToolchain(m.rustContainer(), source).
 		WithExec([]string{"cargo", "check", "--all-targets", "--all-features"}).
 		Stdout(ctx)
 }
 
 // Clippy runs cargo clippy with warnings denied
 func (m *SunApi) Clippy(ctx context.Context, source *dagger.Directory) (string, error) {
-	return m.withSource(m.rustContainer(), source).
+	return m.withSourceAndToolchain(m.rustContainer(), source).
 		WithExec([]string{"rustup", "component", "add", "clippy"}).
 		WithExec([]string{"cargo", "clippy", "--all-targets", "--all-features", "--", "-D", "warnings"}).
 		Stdout(ctx)
@@ -86,14 +92,14 @@ func (m *SunApi) Clippy(ctx context.Context, source *dagger.Directory) (string, 
 
 // Test runs cargo test
 func (m *SunApi) Test(ctx context.Context, source *dagger.Directory) (string, error) {
-	return m.withSource(m.rustContainer(), source).
+	return m.withSourceAndToolchain(m.rustContainer(), source).
 		WithExec([]string{"cargo", "test", "--all-targets", "--all-features"}).
 		Stdout(ctx)
 }
 
 // Build compiles the sunapi binary in release mode and returns it
 func (m *SunApi) Build(ctx context.Context, source *dagger.Directory) *dagger.File {
-	return m.withSource(m.rustContainer(), source).
+	return m.withSourceAndToolchain(m.rustContainer(), source).
 		WithExec([]string{"cargo", "build", "--release", "--package", "sunapi", "--bin", "sunapi"}).
 		WithExec([]string{"cp", "/src/target/release/sunapi", "/tmp/sunapi"}).
 		File("/tmp/sunapi")
@@ -138,13 +144,12 @@ func (m *SunApi) wranglerContainer() *dagger.Container {
 		ExtraKeyUrls: []string{
 			"https://moosingin3space.github.io/wolfi-pkgs/melange.rsa.pub",
 		},
-	})).
-		WithExec([]string{"rustup", "target", "add", "wasm32-unknown-unknown"})
+	}))
 }
 
 // withCfWorkerSource mounts source and sets workdir to the CF worker directory with npm caching
 func (m *SunApi) withCfWorkerSource(ctr *dagger.Container, source *dagger.Directory) *dagger.Container {
-	return m.withSource(ctr, source).
+	return m.withSourceAndToolchain(ctr, source).
 		WithWorkdir("/src/sunapi-cf").
 		WithMountedCache("/src/sunapi-cf/node_modules", dag.CacheVolume(npmCacheName)).
 		WithExec([]string{"npm", "install"})
