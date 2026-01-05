@@ -35,6 +35,7 @@
         },
         {
             "customType": "jsonata",
+            "fileFormat": "toml",
             "managerFilePatterns": ["rust-toolchain.toml"],
             "matchStrings": ["{ 'currentValue': $.toolchain.channel }"],
             "datasourceTemplate": "github-releases",
