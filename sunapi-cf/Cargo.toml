@@ -8,6 +8,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 axum = { version = "0.8.7", default-features = false }
+console_error_panic_hook = "0.1.7"
 jiff = { version = "0.2.16", default-features = false, features = ["js"] }
 sunapi = { version = "0.1.0", path = "../sunapi", default-features = false }
 tower = "0.5.2"
