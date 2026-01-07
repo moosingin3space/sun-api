@@ -30,10 +30,6 @@ export const TEST_LOCATIONS = {
     },
 };
 
-// Fixed timestamp for deterministic testing
-// Using: 2025-11-22T12:00:00Z (UTC)
-export const FIXED_TIMESTAMP = "2025-11-22T12:00:00Z";
-
 // Miniflare instance setup
 let mf: Miniflare;
 
@@ -41,16 +37,16 @@ export function getMiniflareInstance() {
     return mf;
 }
 
-export async function setupMiniflare() {
+async function setupMiniflare() {
     mf = new Miniflare({
         scriptPath: "./build/index.js",
         modules: true,
         modulesRules: [
             { type: "CompiledWasm", include: ["**/*.wasm"], fallthrough: true },
         ],
-        // Set up bindings and environment for testing
-        bindings: {
-            // Add any required bindings here
+        bindings: {},
+        durableObjects: {
+            SCHEDULED_WEBHOOK: "ScheduledWebhook",
         },
     });
 
