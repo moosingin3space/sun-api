@@ -3,6 +3,8 @@ name: PR Checks
 on:
     pull_request:
         branches: [main]
+    repository_dispatch:
+        types: [dagger-update-complete]
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
