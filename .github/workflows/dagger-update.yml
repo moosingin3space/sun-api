@@ -9,6 +9,8 @@ on:
 jobs:
     update-pin:
         runs-on: ubuntu-latest
+        permissions:
+            contents: write
         steps:
             - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
               with:
@@ -23,9 +25,11 @@ jobs:
 
             - name: commit update
               run: |
-                  git config user.email "github-actions[bot]@users.noreply.github.com"
-                  git config user.name "github-actions[bot]"
                   dagger update
                   git add dagger.json
-                  git commit --amend --no-edit
-                  git push origin HEAD
+                  if ! git diff --cached --quiet; then
+                    git config user.email "github-actions[bot]@users.noreply.github.com"
+                    git config user.name "github-actions[bot]"
+                    git commit --amend --no-edit
+                    git push --force-with-lease origin HEAD
+                  fi
