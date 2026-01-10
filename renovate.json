@@ -42,6 +42,17 @@
             "packageNameTemplate": "rust-lang/rust",
             "depNameTemplate": "rust",
             "versioningTemplate": "semver"
+        },
+        {
+            "customType": "jsonata",
+            "fileFormat": "toml",
+            "managerFilePatterns": ["mise.toml"],
+            "matchStrings": [
+                "$.tools.{ 'currentValue': 'cargo:worker-build' }"
+            ],
+            "datasourceTemplate": "crates",
+            "packageNameTemplate": "worker-build",
+            "versioningTemplate": "semver"
         }
     ]
 }
