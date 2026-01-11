@@ -7,8 +7,8 @@
   "dependencies": [
     {
       "name": "wolfi",
-      "source": "github.com/moosingin3space/dagger/modules/wolfi@moosnat/push-yxlotqupsspr",
-      "pin": "6a0685ef3bd86ce5c32ad0e04bc7367ec197eea3"
+      "source": "github.com/dagger/dagger/modules/wolfi@main",
+      "pin": "7c68e16990c22d6db25e265629163fa82ef1d319"
     }
   ],
   "source": ".dagger"
