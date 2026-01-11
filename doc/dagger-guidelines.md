@@ -29,6 +29,12 @@ dagger call clippy --source=.
 dagger call test --source=.
 ```
 
+To test the Cloudflare Worker:
+
+```bash
+dagger call cf-worker-test --source=.
+```
+
 ### Building
 
 | Function | Description |
