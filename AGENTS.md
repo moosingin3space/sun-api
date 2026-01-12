@@ -27,3 +27,5 @@ This project uses the following supporting tools:
 See @doc/*.md and @specs/**/*.md for more information.
 
 Individual crates have documentation at @**/README.md.
+
+Also, make use of Dagger, which is detailed more in the provided skills documentation.
