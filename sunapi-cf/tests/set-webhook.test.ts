@@ -1,6 +1,7 @@
 // Core tests for the /set-webhook endpoint
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { TEST_LOCATIONS, createTestUrl, validateJsonResponse, setupGlobalTestHooks, getMiniflareInstance } from "./setup";
+import { describe, it, expect } from "vitest";
+import { TEST_LOCATIONS, createTestUrl, validateJsonResponse, setupGlobalTestHooks, getMiniflareInstance } from "./setup.js";
+import type { DurableNamespace, DurableStub } from "./durable-objects.types.js";
 
 // Setup global hooks
 setupGlobalTestHooks();
@@ -9,7 +10,7 @@ describe("/set-webhook endpoint tests", () => {
 
     // Test Case 1: Valid webhook scheduling requests
     describe("Valid webhook scheduling requests", () => {
-        for (const [locationKey, location] of Object.entries(TEST_LOCATIONS)) {
+        for (const [, location] of Object.entries(TEST_LOCATIONS)) {
             it(`should schedule webhook successfully for ${location.name}`, async () => {
                 const url = createTestUrl("/set-webhook", {});
                 const webhookUrl = "https://example.com/webhook";
@@ -41,9 +42,9 @@ describe("/set-webhook endpoint tests", () => {
                 expect(response.status).toBe(200);
 
                 // Validate response format
-                const data = await validateJsonResponse(response, [
+                const data = (await validateJsonResponse(response, [
                     "message",
-                ]);
+                ])) as { message: string };
 
                 // Validate data types
                 expect(typeof data.message).toBe("string");
@@ -98,6 +99,7 @@ describe("/set-webhook endpoint tests", () => {
             const requestBody = {
                 url: "https://example.com/webhook",
                 lat: TEST_LOCATIONS.SAN_FRANCISCO.lat,
+                lon: TEST_LOCATIONS.SAN_FRANCISCO.lon,
             };
 
             const response = await getMiniflareInstance().dispatchFetch(url, {
@@ -391,46 +393,47 @@ describe("/set-webhook endpoint tests", () => {
 
     // Test Case 8: Durable object storage verification
     describe("Durable object storage verification", () => {
-        // Helper function to create and verify a webhook in DO storage
-        async function createAndVerifyWebhook(
-            testDoName: string,
-            webhookData: any,
-            verificationCallback?: (storedWebhook: any, postData: any) => void
-        ): Promise<{ id: string; webhook: any }> {
-            const ns = await getMiniflareInstance().getDurableObjectNamespace("SCHEDULED_WEBHOOK");
-            const id = ns.idFromName(testDoName);
-            const stub = ns.get(id);
+    // Helper function to create and verify a webhook in DO storage
+    async function createAndVerifyWebhook(
+        testDoName: string,
+        webhookData: unknown,
+        verificationCallback?: (storedWebhook: unknown) => void
+    ): Promise<{ id: string }> {
+        const mf = getMiniflareInstance();
+        const ns = await (mf as unknown as { getDurableObjectNamespace: (name: string) => Promise<DurableNamespace> }).getDurableObjectNamespace("SCHEDULED_WEBHOOK");
+        const id = ns.idFromName(testDoName);
+        const stub = ns.get(id) as DurableStub;
 
-            // POST to the DO to store the webhook
-            const postResponse = await stub.fetch("http://durable-object/webhooks", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(webhookData),
-            });
+        // POST to the DO to store the webhook
+        const postResponse = await stub.fetch("http://durable-object/webhooks", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(webhookData),
+        });
 
-            expect(postResponse.status).toBe(200);
-            const postData = await postResponse.json() as { id: string; message?: string };
-            expect(postData.id).toBeDefined();
+        expect(postResponse.status).toBe(200);
+        const postData = await postResponse.json() as { id: string; message?: string };
+        expect(postData.id).toBeDefined();
 
-            // GET from the DO to verify the webhook was stored
-            const getResponse = await stub.fetch("http://durable-object/webhooks", {
-                method: "GET",
-            });
+        // GET from the DO to verify the webhook was stored
+        const getResponse = await stub.fetch("http://durable-object/webhooks", {
+            method: "GET",
+        });
 
-            expect(getResponse.status).toBe(200);
-            const webhooks = await getResponse.json() as any[];
-            expect(webhooks.length).toBeGreaterThan(0);
+        expect(getResponse.status).toBe(200);
+        const webhooks = await getResponse.json() as unknown[];
+        expect(webhooks.length).toBeGreaterThan(0);
 
-            const storedWebhook = webhooks.find((w: any) => w.id === postData.id);
-            expect(storedWebhook).toBeDefined();
+        const storedWebhook = webhooks.find((w: unknown) => (w as { id: string }).id === postData.id);
+        expect(storedWebhook).toBeDefined();
 
-            // Run verification callback if provided
-            if (verificationCallback) {
-                verificationCallback(storedWebhook, postData);
-            }
-
-            return { id: postData.id, webhook: storedWebhook };
+        // Run verification callback if provided
+        if (verificationCallback) {
+            verificationCallback(storedWebhook);
         }
+
+        return { id: postData.id };
+    }
 
         it("should save webhook to Durable Object storage after successful scheduling", async () => {
             const testDoName = "test-storage-verification";
@@ -442,11 +445,11 @@ describe("/set-webhook endpoint tests", () => {
                 scheduled_at: new Date().toISOString(),
             };
 
-            const { webhook: storedWebhook } = await createAndVerifyWebhook(
+            await createAndVerifyWebhook(
                 testDoName,
                 testWebhook,
                 (storedWebhook) => {
-                    expect(storedWebhook.url).toBe("https://example.com/storage-verification-test");
+                    expect((storedWebhook as { url: string }).url).toBe("https://example.com/storage-verification-test");
                 }
             );
         });
@@ -481,14 +484,14 @@ describe("/set-webhook endpoint tests", () => {
                 scheduled_at: new Date().toISOString(),
             };
 
-            const { webhook: storedWebhook, id: postData } = await createAndVerifyWebhook(
+            await createAndVerifyWebhook(
                 testDoName,
                 testWebhook,
                 (storedWebhook) => {
-                    expect(storedWebhook.url).toBe("https://example.com/direct-test");
-                    expect(storedWebhook.method).toBe("POST");
-                    expect(storedWebhook.body).toBe('{"test": "data"}');
-                    expect(storedWebhook.headers).toEqual({ "Content-Type": "application/json" });
+                    expect((storedWebhook as { url: string }).url).toBe("https://example.com/direct-test");
+                    expect((storedWebhook as { method: string }).method).toBe("POST");
+                    expect((storedWebhook as { body: string }).body).toBe('{"test": "data"}');
+                    expect((storedWebhook as { headers: Record<string, string> }).headers).toEqual({ "Content-Type": "application/json" });
                 }
             );
         });
@@ -524,16 +527,17 @@ describe("/set-webhook endpoint tests", () => {
             expect(id1).not.toBe(id2);
 
             // Verify both are stored by querying all webhooks
-            const ns = await getMiniflareInstance().getDurableObjectNamespace("SCHEDULED_WEBHOOK");
-            const durableId = ns.idFromName(testDoName);
-            const stub = ns.get(durableId);
-            const getResponse = await stub.fetch("http://durable-object/webhooks", {
-                method: "GET",
-            });
+             const mf = getMiniflareInstance();
+             const ns = await (mf as unknown as { getDurableObjectNamespace: (name: string) => Promise<DurableNamespace> }).getDurableObjectNamespace("SCHEDULED_WEBHOOK");
+             const durableId = ns.idFromName(testDoName);
+             const stub = ns.get(durableId) as DurableStub;
+             const getResponse = await stub.fetch("http://durable-object/webhooks", {
+                 method: "GET",
+             });
 
-            const webhooks = await getResponse.json() as any[];
-            expect(webhooks.some((w: any) => w.id === id1)).toBe(true);
-            expect(webhooks.some((w: any) => w.id === id2)).toBe(true);
+            const webhooks = await getResponse.json() as unknown[];
+            expect(webhooks.some((w: unknown) => (w as { id: string }).id === id1)).toBe(true);
+            expect(webhooks.some((w: unknown) => (w as { id: string }).id === id2)).toBe(true);
         });
 
         it("should store scheduled_at timestamp correctly", async () => {
@@ -547,11 +551,11 @@ describe("/set-webhook endpoint tests", () => {
                 scheduled_at: scheduledAt,
             };
 
-            const { webhook: storedWebhook } = await createAndVerifyWebhook(
+            await createAndVerifyWebhook(
                 testDoName,
                 webhook,
                 (storedWebhook) => {
-                    expect(storedWebhook.scheduled_at).toBe(scheduledAt);
+                    expect((storedWebhook as { scheduled_at: string }).scheduled_at).toBe(scheduledAt);
                 }
             );
         });
