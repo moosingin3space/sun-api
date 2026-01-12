@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use worker::*;
+use worker::{wasm_bindgen::JsValue, *};
 
 fn method_to_string(method: &Method) -> String {
     match method {
@@ -97,7 +97,11 @@ impl DurableObject for ScheduledWebhook {
 
                 // Get the scheduled timestamp for alarm
                 let scheduled_timestamp = webhook.scheduled_at;
-                let alarm_time = scheduled_timestamp.as_millisecond();
+                let alarm_time = {
+                    let ms = scheduled_timestamp.as_millisecond();
+                    let alarm_time = js_sys::Date::new(&JsValue::from_f64(ms as f64));
+                    ScheduledTime::new(alarm_time)
+                };
 
                 let stored_webhook = StoredWebhook {
                     id: id.clone(),
@@ -116,7 +120,16 @@ impl DurableObject for ScheduledWebhook {
                     .await?;
 
                 // Set an alarm for the scheduled time
-                self.state.storage().set_alarm(alarm_time).await?;
+                self.state
+                    .storage()
+                    .set_alarm_with_options(
+                        alarm_time,
+                        SetAlarmOptions {
+                            allow_concurrency: Some(true),
+                            allow_unconfirmed: None,
+                        },
+                    )
+                    .await?;
 
                 let response_json = serde_json::json!({
                     "id": id,
