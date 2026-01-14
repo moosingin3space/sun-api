@@ -3,7 +3,14 @@ import { Miniflare } from "miniflare";
 import { beforeAll, afterAll, expect } from "vitest";
 
 // Test locations with variety of coordinates
-export const TEST_LOCATIONS = {
+interface TestLocation {
+    name: string;
+    lat: number;
+    lon: number;
+    tz: string;
+}
+
+export const TEST_LOCATIONS: Record<string, TestLocation> = {
     SAN_FRANCISCO: {
         name: "San Francisco",
         lat: 37.7749,
@@ -31,9 +38,12 @@ export const TEST_LOCATIONS = {
 };
 
 // Miniflare instance setup
-let mf: Miniflare;
+let mf: Miniflare | undefined;
 
-export function getMiniflareInstance() {
+export function getMiniflareInstance(): Miniflare {
+    if (!mf) {
+        throw new Error("Miniflare instance not initialized");
+    }
     return mf;
 }
 
@@ -66,9 +76,9 @@ export function createTestUrl(
 }
 
 // Utility function to validate JSON response
-export function validateJsonResponse(response: any, expectedFields: string[]) {
-    expect(response.headers.get("content-type")).toContain("application/json");
-    return response.json().then((data: any) => {
+export function validateJsonResponse(response: unknown, expectedFields: string[]) {
+    expect((response as { headers: { get: (key: string) => string } }).headers.get("content-type")).toContain("application/json");
+    return (response as { json: () => Promise<unknown> }).json().then((data: unknown) => {
         expectedFields.forEach((field) => {
             expect(data).toHaveProperty(field);
         });

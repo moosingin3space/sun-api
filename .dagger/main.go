@@ -57,14 +57,27 @@ func (m *SunApi) rustContainer() *dagger.Container {
 	}))
 }
 
-// Lint runs cargo fmt check, cargo check, and cargo clippy with warnings denied
+// Lint runs cargo fmt check, cargo check, cargo clippy with warnings denied,
+// and ESLint for the Cloudflare Worker
 func (m *SunApi) Lint(ctx context.Context, source *dagger.Directory) (string, error) {
-	return m.withSourceAndToolchain(m.rustContainer(), source).
+	// Run Rust linting
+	rustLint, err := m.withSourceAndToolchain(m.rustContainer(), source).
 		WithExec([]string{"rustup", "component", "add", "rustfmt", "clippy"}).
 		WithExec([]string{"cargo", "fmt", "--all", "--check"}).
 		WithExec([]string{"cargo", "check", "--all-targets", "--all-features"}).
 		WithExec([]string{"cargo", "clippy", "--all-targets", "--all-features", "--", "-D", "warnings"}).
 		Stdout(ctx)
+	if err != nil {
+		return rustLint, err
+	}
+
+	// Run Cloudflare Worker linting
+	cfLint, err := m.CfWorkerLint(ctx, source)
+	if err != nil {
+		return cfLint, err
+	}
+
+	return rustLint + "\n" + cfLint, nil
 }
 
 // Fmt runs cargo fmt check
@@ -183,5 +196,12 @@ func (m *SunApi) CfWorkerTest(ctx context.Context, source *dagger.Directory) (st
 	return m.withCfWorkerSource(m.wranglerContainer(), source).
 		WithExec([]string{"npx", "wrangler", "deploy", "--dry-run"}).
 		WithExec([]string{"npx", "vitest", "run"}).
+		Stdout(ctx)
+}
+
+// CfWorkerLint runs ESLint for the Cloudflare Worker
+func (m *SunApi) CfWorkerLint(ctx context.Context, source *dagger.Directory) (string, error) {
+	return m.withCfWorkerSource(m.wranglerContainer(), source).
+		WithExec([]string{"npx", "eslint", "."}).
 		Stdout(ctx)
 }

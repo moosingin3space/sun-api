@@ -1,6 +1,6 @@
 // Core tests for the /sun-state endpoint
 import { describe, it, expect } from "vitest";
-import { TEST_LOCATIONS, createTestUrl, validateJsonResponse, setupGlobalTestHooks, getMiniflareInstance } from "./setup";
+import { TEST_LOCATIONS, createTestUrl, validateJsonResponse, setupGlobalTestHooks, getMiniflareInstance } from "./setup.js";
 
 // Setup global hooks
 setupGlobalTestHooks();
@@ -9,7 +9,7 @@ describe("/sun-state endpoint tests", () => {
 
     // Test Case 1: Valid requests with multiple locations
     describe("Valid requests with variety of coordinates", () => {
-        for (const [locationKey, location] of Object.entries(TEST_LOCATIONS)) {
+        for (const [, location] of Object.entries(TEST_LOCATIONS)) {
             it(`should return valid response for ${location.name}`, async () => {
                 const url = createTestUrl("/sun-state", {
                     lat: location.lat,
@@ -32,10 +32,10 @@ describe("/sun-state endpoint tests", () => {
                 expect(response.status).toBe(200);
 
                 // Validate response format
-                const data = await validateJsonResponse(response, [
+                const data = (await validateJsonResponse(response, [
                     "sun_up",
                     "time",
-                ]);
+                ])) as { sun_up: boolean; time: string };
 
                 // Validate data types
                 expect(typeof data.sun_up).toBe("boolean");
@@ -84,10 +84,10 @@ describe("/sun-state endpoint tests", () => {
             const response = await getMiniflareInstance().dispatchFetch(url);
             expect(response.status).toBe(200);
 
-            const data = await validateJsonResponse(response, [
+            const data = (await validateJsonResponse(response, [
                 "sun_up",
                 "time",
-            ]);
+            ])) as { sun_up: boolean; time: string };
 
             // Should show UTC timezone
             expect(data.time).toContain("[UTC]");
@@ -103,10 +103,10 @@ describe("/sun-state endpoint tests", () => {
             const response = await getMiniflareInstance().dispatchFetch(url);
             expect(response.status).toBe(200);
 
-            const data = await validateJsonResponse(response, [
+            const data = (await validateJsonResponse(response, [
                 "sun_up",
                 "time",
-            ]);
+            ])) as { sun_up: boolean; time: string };
 
             // Should show America/Los_Angeles timezone
             expect(data.time).toContain("[America/Los_Angeles]");

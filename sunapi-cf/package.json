@@ -2,15 +2,25 @@
 	"name": "sunapi-cf",
 	"version": "0.0.0",
 	"private": true,
+	"type": "module",
 	"scripts": {
 		"deploy": "wrangler deploy",
 		"dev": "wrangler dev",
 		"start": "wrangler dev",
-		"test": "vitest"
+		"test": "vitest",
+		"lint": "eslint .",
+		"lint:ts": "tsc --noEmit",
+		"lint:all": "npm run lint && npm run lint:ts",
+		"format": "prettier --write ."
 	},
 	"devDependencies": {
+		"eslint": "^9.13.0",
 		"miniflare": "^4.20251217.0",
 		"vitest": "~4.0.0",
-		"wrangler": "^4.50.0"
+		"wrangler": "^4.50.0",
+		"typescript": "^5.9.3",
+		"@typescript-eslint/eslint-plugin": "^8.8.0",
+		"@typescript-eslint/parser": "^8.8.0",
+		"prettier": "^3.3.3"
 	}
 }
