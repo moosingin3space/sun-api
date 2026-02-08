@@ -2,6 +2,16 @@
     "$schema": "https://docs.renovatebot.com/renovate-schema.json",
     "extends": ["config:recommended", "helpers:pinGitHubActionDigestsToSemver"],
     "ignorePaths": [".dagger/**"],
+    "packageRules": [
+        {
+            "groupName": "workers-rs",
+            "matchPackagePatterns": [
+                "^worker$",
+                "^worker-macros$",
+                "^worker-build$"
+            ]
+        }
+    ],
     "customManagers": [
         {
             "customType": "jsonata",
