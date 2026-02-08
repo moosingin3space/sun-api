@@ -1,14 +1,14 @@
 {
   "name": "sun-api",
-  "engineVersion": "v0.19.9",
+  "engineVersion": "v0.19.11",
   "sdk": {
     "source": "go"
   },
   "dependencies": [
     {
       "name": "wolfi",
-      "source": "github.com/dagger/dagger/modules/wolfi@main",
-      "pin": "7c68e16990c22d6db25e265629163fa82ef1d319"
+      "source": "github.com/dagger/dagger/modules/wolfi@v0.19.11",
+      "pin": "d8811256e5e901e6760f7011431080fedd61fc47"
     }
   ],
   "source": ".dagger"
