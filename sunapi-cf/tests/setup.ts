@@ -66,14 +66,13 @@ export function createTestUrl(
 }
 
 // Utility function to validate JSON response
-export function validateJsonResponse(response: any, expectedFields: string[]) {
+export async function validateJsonResponse(response: Response, expectedFields: string[]) {
     expect(response.headers.get("content-type")).toContain("application/json");
-    return response.json().then((data: any) => {
-        expectedFields.forEach((field) => {
-            expect(data).toHaveProperty(field);
-        });
-        return data;
+    const data = await response.json();
+    expectedFields.forEach((field) => {
+        expect(data).toHaveProperty(field);
     });
+    return data;
 }
 
 // Global setup and teardown
