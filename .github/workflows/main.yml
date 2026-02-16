@@ -22,7 +22,7 @@ jobs:
                   persist-credentials: false
 
             - name: Run lint
-              uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
+              uses: dagger/dagger-for-github@456fc3af63a2ba6f9789af9c55045b459115541b # v8.3.0
               with:
                   version: "0.19.11"
                   cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
@@ -39,7 +39,7 @@ jobs:
                   persist-credentials: false
 
             - name: Run tests
-              uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
+              uses: dagger/dagger-for-github@456fc3af63a2ba6f9789af9c55045b459115541b # v8.3.0
               with:
                   version: "0.19.11"
                   cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
@@ -57,7 +57,7 @@ jobs:
                   persist-credentials: false
 
             - name: Run Cloudflare Worker tests
-              uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
+              uses: dagger/dagger-for-github@456fc3af63a2ba6f9789af9c55045b459115541b # v8.3.0
               with:
                   version: "0.19.11"
                   cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
@@ -83,14 +83,14 @@ jobs:
                   password: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Build and publish container
-              uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
+              uses: dagger/dagger-for-github@456fc3af63a2ba6f9789af9c55045b459115541b # v8.3.0
               with:
                   version: "0.19.11"
                   cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
                   call: publish --source=. --address=ghcr.io/${{ github.repository }}/sunapi:${{ github.sha }}
 
             - name: Tag as latest
-              uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
+              uses: dagger/dagger-for-github@456fc3af63a2ba6f9789af9c55045b459115541b # v8.3.0
               with:
                   version: "0.19.11"
                   cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
@@ -110,7 +110,7 @@ jobs:
                   persist-credentials: false
 
             - name: Deploy to Cloudflare
-              uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
+              uses: dagger/dagger-for-github@456fc3af63a2ba6f9789af9c55045b459115541b # v8.3.0
               with:
                   version: "0.19.11"
                   cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
