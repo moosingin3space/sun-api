@@ -1,6 +1,6 @@
 {
     "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-    "extends": ["config:recommended", "helpers:pinGitHubActionDigestsToSemver"],
+    "extends": ["config:recommended", "helpers:pinGitHubActionDigestsToSemver", "github>moosingin3space/renovate-util:rust-toolchain"],
     "ignorePaths": [".dagger/**"],
     "packageRules": [
         {
@@ -41,16 +41,6 @@
             ],
             "depNameTemplate": "github.com/{{{packageName}}}{{{modulePath}}}",
             "datasourceTemplate": "github-tags",
-            "versioningTemplate": "semver"
-        },
-        {
-            "customType": "jsonata",
-            "fileFormat": "toml",
-            "managerFilePatterns": ["rust-toolchain.toml"],
-            "matchStrings": ["{ 'currentValue': $.toolchain.channel }"],
-            "datasourceTemplate": "github-releases",
-            "packageNameTemplate": "rust-lang/rust",
-            "depNameTemplate": "rust",
             "versioningTemplate": "semver"
         }
     ]
