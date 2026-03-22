@@ -1,0 +1,39 @@
+name: Publish
+
+on:
+    push:
+        branches: [main]
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+permissions:
+    contents: read
+    packages: write # zizmor: ignore[excessive-permissions]
+
+jobs:
+    publish-sha:
+        name: Publish (SHA)
+        uses: moosingin3space/charmd-stack-ci/.github/workflows/dagger-publish.yml@2d700e4ca7d9cb9226c805c2791ba004d9e627a2 # v1.1
+        with:
+            dagger-version: "0.20.1"
+            call: publish --address=ghcr.io/${{ github.repository }}/sunapi:${{ github.sha }}
+            registry: ghcr.io
+            registry-username: ${{ github.actor }}
+        secrets:
+            dagger-cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+            registry-password: ${{ secrets.GITHUB_TOKEN }}
+
+    publish-latest:
+        name: Publish (latest)
+        needs: publish-sha
+        uses: moosingin3space/charmd-stack-ci/.github/workflows/dagger-publish.yml@2d700e4ca7d9cb9226c805c2791ba004d9e627a2 # v1.1
+        with:
+            dagger-version: "0.20.1"
+            call: publish --address=ghcr.io/${{ github.repository }}/sunapi:latest
+            registry: ghcr.io
+            registry-username: ${{ github.actor }}
+        secrets:
+            dagger-cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+            registry-password: ${{ secrets.GITHUB_TOKEN }}

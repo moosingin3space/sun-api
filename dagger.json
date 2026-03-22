@@ -6,6 +6,11 @@
   },
   "dependencies": [
     {
+      "name": "rust",
+      "source": "github.com/moosingin3space/daggerverse/modules/rust@main",
+      "pin": "0f943ed55d4b3caeb7f54c2d2cc7537ff26a0507"
+    },
+    {
       "name": "wolfi",
       "source": "github.com/dagger/dagger/modules/wolfi@v0.20.1",
       "pin": "04727b5af8fa5d399f3bf87df4ff918c1f157685"

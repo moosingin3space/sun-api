@@ -1,4 +1,5 @@
 name: Dagger Pin Update
+
 on:
     push:
         branches:
@@ -6,43 +7,12 @@ on:
         paths:
             - "dagger.json"
 
+permissions:
+    contents: write
+
 jobs:
     update-pin:
-        runs-on: ubuntu-latest
-        permissions:
-            contents: write
-        steps:
-            - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-              with:
-                  persist-credentials: true
-                  fetch-depth: 0
-
-            - name: setup dagger
-              uses: dagger/dagger-for-github@27b130bf0f79a7f6fbbbe0fbca6760dc9bb40a77 # v8.4.1
-              with:
-                  version: "0.20.1"
-                  cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-
-            - name: commit update
-              run: |
-                  dagger update
-                  git add dagger.json
-                  if ! git diff --cached --quiet; then
-                    git config user.email "github-actions[bot]@users.noreply.github.com"
-                    git config user.name "github-actions[bot]"
-                    git commit --amend --no-edit
-                    git push --force-with-lease origin HEAD
-                    echo "PUSHED=true" >> $GITHUB_ENV
-                  fi
-
-            - name: Trigger PR checks
-              if: env.PUSHED == 'true'
-              uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
-              with:
-                  github-token: ${{ secrets.GITHUB_TOKEN }}
-                  script: |
-                      github.rest.repos.createDispatchEvent({
-                        owner: context.repo.owner,
-                        repo: context.repo.repo,
-                        event_type: 'dagger-update-complete'
-                      })
+        uses: moosingin3space/charmd-stack-ci/.github/workflows/dagger-update.yml@2d700e4ca7d9cb9226c805c2791ba004d9e627a2 # v1.1
+        secrets:
+            dagger-cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+            github-token: ${{ secrets.GITHUB_TOKEN }}
