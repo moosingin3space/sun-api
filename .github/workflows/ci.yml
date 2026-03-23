@@ -19,7 +19,7 @@ jobs:
     lint:
         uses: moosingin3space/charmd-stack-ci/.github/workflows/dagger-call.yml@2d700e4ca7d9cb9226c805c2791ba004d9e627a2 # v1.1
         with:
-            dagger-version: "0.20.1"
+            dagger-version: "0.20.3"
             call: lint
         secrets:
             dagger-cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
@@ -28,7 +28,7 @@ jobs:
         needs: lint
         uses: moosingin3space/charmd-stack-ci/.github/workflows/dagger-call.yml@2d700e4ca7d9cb9226c805c2791ba004d9e627a2 # v1.1
         with:
-            dagger-version: "0.20.1"
+            dagger-version: "0.20.3"
             call: test
         secrets:
             dagger-cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
@@ -37,7 +37,7 @@ jobs:
         needs: test
         uses: moosingin3space/charmd-stack-ci/.github/workflows/dagger-call.yml@2d700e4ca7d9cb9226c805c2791ba004d9e627a2 # v1.1
         with:
-            dagger-version: "0.20.1"
+            dagger-version: "0.20.3"
             call: cf-worker-test
         secrets:
             dagger-cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
@@ -48,7 +48,7 @@ jobs:
         if: github.event_name == 'pull_request' || github.event_name == 'repository_dispatch'
         uses: moosingin3space/charmd-stack-ci/.github/workflows/dagger-call.yml@2d700e4ca7d9cb9226c805c2791ba004d9e627a2 # v1.1
         with:
-            dagger-version: "0.20.1"
+            dagger-version: "0.20.3"
             call: build-container
         secrets:
             dagger-cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
@@ -59,7 +59,7 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: moosingin3space/charmd-stack-ci/.github/workflows/dagger-call.yml@2d700e4ca7d9cb9226c805c2791ba004d9e627a2 # v1.1
         with:
-            dagger-version: "0.20.1"
+            dagger-version: "0.20.3"
             environment: production
             call: deploy-cf-worker --cloudflare-api-token=env:CLOUDFLARE_API_TOKEN --cloudflare-account-id=env:CLOUDFLARE_ACCOUNT_ID
         secrets:
