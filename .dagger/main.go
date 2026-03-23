@@ -108,7 +108,7 @@ func (m *SunApi) cfWorkerContainer(source *dagger.Directory) *dagger.Container {
 	return dag.Rust().DevContainer(dagger.RustDevContainerOpts{
 		ToolchainFile:     source.File("rust-toolchain.toml"),
 		Source:            source,
-		ExtraPackages:     []string{"nodejs", "npm", "clang", "wasm-tools", "worker-build"},
+		ExtraPackages:     []string{"nodejs-22", "npm", "clang", "wasm-tools", "worker-build"},
 		ExtraRepositories: []string{"https://moosingin3space.github.io/wolfi-pkgs"},
 		ExtraKeyUrls:      []string{"https://moosingin3space.github.io/wolfi-pkgs/melange.rsa.pub"},
 	}).Container().
