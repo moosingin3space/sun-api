@@ -1,6 +1,6 @@
 {
     "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-    "extends": ["config:recommended", "helpers:pinGitHubActionDigestsToSemver", "github>moosingin3space/renovate-util:rust-toolchain"],
+    "extends": ["config:recommended", "helpers:pinGitHubActionDigestsToSemver", "github>moosingin3space/renovate-util:rust-toolchain", "github>moosingin3space/renovate-util:miniflareAutomerge"],
     "ignorePaths": [".dagger/**"],
     "packageRules": [
         {
@@ -16,7 +16,7 @@
         {
             "customType": "jsonata",
             "fileFormat": "yaml",
-            "managerFilePatterns": ["/^\\.github/workflows/.*\\.ya?ml$/"],
+            "managerFilePatterns": ["/^\.github/workflows/.*\.ya?ml$/"],
             "matchStrings": [
                 "$each(jobs, function($j) { $j.*.steps[uses = \"dagger/dagger-for-github\"].({ \"depName\": \"dagger/dagger\", \"currentValue\": $j.*.steps[uses = \"dagger/dagger-for-github\"].with.version }) })"
             ],
@@ -26,7 +26,7 @@
         {
             "customType": "jsonata",
             "fileFormat": "json",
-            "managerFilePatterns": ["/^dagger\\.json$/"],
+            "managerFilePatterns": ["/^dagger\.json$/"],
             "matchStrings": [
                 "{ \"depName\": \"dagger/dagger\", \"currentValue\": engineVersion }"
             ],
@@ -35,9 +35,9 @@
         },
         {
             "customType": "regex",
-            "managerFilePatterns": ["/^dagger\\.json$/"],
+            "managerFilePatterns": ["/^dagger\.json$/"],
             "matchStrings": [
-                "\"source\":\\s*\"github\\.com/(?<packageName>[^/]+/[^/]+)(?<modulePath>/[^@]+)?@(?<currentValue>[^\"]+)\",\\s*\"pin\":\\s*\"[^\"]+\""
+                "\"source\":\\s*\"github\.com/(?<packageName>[^/]+/[^/]+)(?<modulePath>/[^@]+)?@(?<currentValue>[^\"]+)\",\\s*\"pin\":\\s*\"[^\"]+\""
             ],
             "depNameTemplate": "github.com/{{{packageName}}}{{{modulePath}}}",
             "datasourceTemplate": "github-tags",
