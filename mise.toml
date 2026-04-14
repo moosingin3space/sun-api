@@ -1,2 +1,2 @@
 [tools]
-"cargo:worker-build" = "0.7.1"
+"cargo:worker-build" = "0.8.0"
