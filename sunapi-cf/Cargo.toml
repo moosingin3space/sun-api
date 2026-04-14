@@ -18,8 +18,8 @@ sunapi = { version = "0.1.0", path = "../sunapi", default-features = false }
 tower = "0.5.2"
 tower-service = "0.3.3"
 uuid = { version = "1.0", features = ["v4", "js"] }
-worker = { version = "0.7.5", features = ["axum", "http"] }
-worker-macros = { version = "0.7.5", features = ["http"] }
+worker = { version = "0.8.0", features = ["axum", "http"] }
+worker-macros = { version = "0.8.0", features = ["http"] }
 
 [lints]
 workspace = true
